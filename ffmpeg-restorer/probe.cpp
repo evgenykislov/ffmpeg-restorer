@@ -22,48 +22,19 @@ bool Str2Duration(const std::string& str, size_t& value) {
 }
 
 
-Probe::Probe()
-{
-
-}
-
-bool Probe::ParseDuration(const std::string& value, size_t& duration_mcs) {
+bool RunApplication(const std::string& application, const std::vector<std::string>& arguments, std::string& output, std::string& errout) {
   try {
-    std::istringstream ss(value);
-    constexpr size_t kUndef = std::numeric_limits<size_t>::max();
-    duration_mcs = kUndef;
-    for (std::string line; std::getline(ss, line);) {
-      if (duration_mcs != kUndef) { return false; } // Несколько значений
-      if (!Str2Duration(line, duration_mcs)) { return false; }
-    }
-    return true;
-  } catch (std::exception&) {
-  }
-  return false;
-}
-
-Probe::~Probe() {
-}
-
-bool Probe::RequestDuration(const std::string& fname, size_t& duration_mcs) {
-  try {
-    std::vector<std::string> arguments = {"ffprobe", "-v", "error",
-      "-show_entries", "format=duration", "-sexagesimal", "-of",
-      "default=noprint_wrappers=1:nokey=1"};
-    arguments.push_back(fname);
     std::vector<const char*> raw_args;
-    raw_args.reserve(arguments.size());
+    raw_args.reserve(arguments.size() + 2);
+    raw_args.push_back(application.c_str());
     for (auto it = arguments.begin(); it != arguments.end(); ++it) {
       raw_args.push_back(it->c_str());
     }
     raw_args.push_back(nullptr);
 
     reproc::process proc;
-    std::string output;
-    std::string errput;
     reproc::sink::string sout(output);
-    reproc::sink::string serr(errput);
-
+    reproc::sink::string serr(errout);
     std::error_code err;
 
     err = proc.start(raw_args.data());
@@ -93,10 +64,84 @@ bool Probe::RequestDuration(const std::string& fname, size_t& duration_mcs) {
       return false;
     }
 
+    return true;
+  } catch (std::exception& err) {
+    std::cerr << "Error: " << err.what() << std::endl;
+  }
+  return false;
+}
+
+
+Probe::Probe()
+{
+
+}
+
+bool Probe::ParseDuration(const std::string& value, size_t& duration_mcs) {
+  try {
+    std::istringstream ss(value);
+    constexpr size_t kUndef = std::numeric_limits<size_t>::max();
+    duration_mcs = kUndef;
+    for (std::string line; std::getline(ss, line);) {
+      if (duration_mcs != kUndef) { return false; } // Несколько значений
+      if (!Str2Duration(line, duration_mcs)) { return false; }
+    }
+    return true;
+  } catch (std::exception&) {
+  }
+  return false;
+}
+
+bool Probe::ParseKeyFrames(const std::string& value, std::vector<size_t>& key_frames) {
+
+}
+
+Probe::~Probe() {
+}
+
+bool Probe::RequestDuration(const std::string& fname, size_t& duration_mcs) {
+  try {
+    std::vector<std::string> arguments = {"-v", "error",
+      "-show_entries", "format=duration", "-sexagesimal", "-of",
+      "default=noprint_wrappers=1:nokey=1"};
+    arguments.push_back(fname);
+
+    std::string output;
+    std::string errout;
+    if (!RunApplication("ffprobe", arguments, output, errout)) {
+      return false;
+    }
+
     if (!ParseDuration(output, duration_mcs)) {
       std::cerr << "ffprobe returns unknown format value" << std::endl;
       return false;
     }
+    return true;
+  } catch (std::exception& err) {
+    std::cerr << "Error: " << err.what() << std::endl;
+  }
+  return false;
+}
+
+bool Probe::RequestKeyFrames(const std::string& fname, std::vector<size_t>& key_frames) {
+  try {
+    std::vector<std::string> arguments = { "-select_streams", "v", "-skip_frame",
+        "nokey", "-show_frames", "-show_entries", "frame=pkt_pts_time,pict_type",
+        "-sexagesimal" };
+    arguments.push_back(fname);
+
+    std::string output;
+    std::string errout;
+    if (!RunApplication("ffprobe", arguments, output, errout)) {
+      return false;
+    }
+
+    std::cout << "Receive information about key frames with size " << output.size() << " symbols" << std::endl;
+
+//    if (!ParseDuration(output, duration_mcs)) {
+//      std::cerr << "ffprobe returns unknown format value" << std::endl;
+//      return false;
+//    }
     return true;
   } catch (std::exception& err) {
     std::cerr << "Error: " << err.what() << std::endl;
