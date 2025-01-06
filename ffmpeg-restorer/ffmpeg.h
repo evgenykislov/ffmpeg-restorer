@@ -1,5 +1,5 @@
-#ifndef PROBE_H
-#define PROBE_H
+#ifndef FFMPEG_H
+#define FFMPEG_H
 
 #include <string>
 #include <vector>
@@ -32,4 +32,4 @@ class FFmpeg {
   bool ParseKeyFrames(const std::string& value, std::vector<size_t>& key_frames);
 };
 
-#endif // PROBE_H
+#endif

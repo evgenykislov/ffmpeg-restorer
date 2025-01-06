@@ -7,12 +7,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(SOURCE_FILES
   "main.cpp"
-  "probe.cpp"
+  "ffmpeg.cpp"
   )
 
 
 set(HEADER_FILES
-  "probe.h"
+  "ffmpeg.h"
   )
 
 add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES})
