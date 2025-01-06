@@ -4,10 +4,10 @@
 #include <string>
 #include <vector>
 
-class Probe {
+class FFmpeg {
  public:
-  Probe();
-  virtual ~Probe();
+  FFmpeg();
+  virtual ~FFmpeg();
 
   /*! Запросить длительность медиафайла
   \param fname полный путь к файлу в нативной кодировке
@@ -22,10 +22,10 @@ class Probe {
   bool RequestKeyFrames(const std::string& fname, std::vector<size_t>& key_frames);
 
  private:
-  Probe(const Probe&) = delete;
-  Probe(Probe&&) = delete;
-  Probe& operator=(const Probe&) = delete;
-  Probe& operator=(Probe&&) = delete;
+  FFmpeg(const FFmpeg&) = delete;
+  FFmpeg(FFmpeg&&) = delete;
+  FFmpeg& operator=(const FFmpeg&) = delete;
+  FFmpeg& operator=(FFmpeg&&) = delete;
 
   bool ParseDuration(const std::string& value, size_t& duration_mcs);
 

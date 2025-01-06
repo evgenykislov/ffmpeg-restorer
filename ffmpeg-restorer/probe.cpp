@@ -72,12 +72,12 @@ bool RunApplication(const std::string& application, const std::vector<std::strin
 }
 
 
-Probe::Probe()
+FFmpeg::FFmpeg()
 {
 
 }
 
-bool Probe::ParseDuration(const std::string& value, size_t& duration_mcs) {
+bool FFmpeg::ParseDuration(const std::string& value, size_t& duration_mcs) {
   try {
     std::istringstream ss(value);
     constexpr size_t kUndef = std::numeric_limits<size_t>::max();
@@ -92,14 +92,14 @@ bool Probe::ParseDuration(const std::string& value, size_t& duration_mcs) {
   return false;
 }
 
-bool Probe::ParseKeyFrames(const std::string& value, std::vector<size_t>& key_frames) {
+bool FFmpeg::ParseKeyFrames(const std::string& value, std::vector<size_t>& key_frames) {
 
 }
 
-Probe::~Probe() {
+FFmpeg::~FFmpeg() {
 }
 
-bool Probe::RequestDuration(const std::string& fname, size_t& duration_mcs) {
+bool FFmpeg::RequestDuration(const std::string& fname, size_t& duration_mcs) {
   try {
     std::vector<std::string> arguments = {"-v", "error",
       "-show_entries", "format=duration", "-sexagesimal", "-of",
@@ -123,7 +123,7 @@ bool Probe::RequestDuration(const std::string& fname, size_t& duration_mcs) {
   return false;
 }
 
-bool Probe::RequestKeyFrames(const std::string& fname, std::vector<size_t>& key_frames) {
+bool FFmpeg::RequestKeyFrames(const std::string& fname, std::vector<size_t>& key_frames) {
   try {
     std::vector<std::string> arguments = { "-select_streams", "v", "-skip_frame",
         "nokey", "-show_frames", "-show_entries", "frame=pkt_pts_time,pict_type",

@@ -7,7 +7,7 @@
 int main(int argc, char** argv) {
 
   if (argc > 1) {
-    Probe p;
+    FFmpeg p;
     size_t duration;
     if (p.RequestDuration(argv[1], duration)) {
       std::cout << "Dur-Dur: " << duration << std::endl;
