@@ -1,10 +1,24 @@
+#include <cassert>
 #include <iostream>
 
 #include "ffmpeg.h"
 
 
+void PrintHelp() {
+  // TODO Implementation
+  assert(false);
+}
+
 
 int main(int argc, char** argv) {
+  if (argc <= 1) {
+    PrintHelp();
+    return 1;
+  }
+
+  // Добавим новое задание
+
+
 
   if (argc > 1) {
     FFmpeg p;

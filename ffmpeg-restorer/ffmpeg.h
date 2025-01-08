@@ -21,6 +21,9 @@ class FFmpeg {
   \return признак успешности выполнения запроса */
   bool RequestKeyFrames(const std::string& fname, std::vector<size_t>& key_frames);
 
+  /*! Выполнить конвертацию */
+  bool DoConvertation(const std::vector<std::string>& arguments);
+
  private:
   FFmpeg(const FFmpeg&) = delete;
   FFmpeg(FFmpeg&&) = delete;
