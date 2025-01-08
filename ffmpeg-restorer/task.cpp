@@ -1,7 +1,10 @@
 #include "task.h"
 
 #include <cassert>
+#include <chrono>
+#include <iomanip>
 #include <iostream>
+#include <sstream>
 #include <utility>
 
 #include "ffmpeg.h"
@@ -68,6 +71,11 @@ bool Task::CreateFromArguments(int argc, char** argv) {
     if (input_file_.empty() || output_file_.empty()) {
       throw std::invalid_argument("input/output file isn't specified");
     }
+
+    if (!GenerateChunks()) {
+      throw std::invalid_argument("failed to parse input file");
+    }
+
     is_created_ = true;
     return true;
   } catch (std::invalid_argument&) {
@@ -85,8 +93,18 @@ bool Task::Run() {
     return false;
   }
 
-  FFmpeg conv;
-  return conv.DoConvertation(input_file_, output_file_, 0, 0, arguments_);
+  bool result = true;
+  for (auto it = chunks_.begin(); it != chunks_.end(); ++it) {
+    auto p1 = std::chrono::steady_clock::now();
+    FFmpeg conv;
+    conv.DoConvertation(input_file_, it->FileName, it->StartTime, it->Interval, arguments_);
+    auto p2 = std::chrono::steady_clock::now();
+
+    size_t prc = (it->StartTime + it->Interval) * 100 / duration_;
+    std::cout << prc << "%" << ". Process " << std::chrono::duration_cast<std::chrono::seconds>(p2 - p1).count() << "s" << std::endl;
+  }
+
+  return true; // TODO check return value
 }
 
 
@@ -110,4 +128,42 @@ void Task::Copy(Task& arg_to, const Task& arg_from) {
   arg_to.arguments_ = arg_from.arguments_;
   arg_to.input_file_ = arg_from.input_file_;
   arg_to.output_file_ = arg_from.output_file_;
+}
+
+bool Task::GenerateChunks() {
+  FFmpeg fm;
+
+  if (!fm.RequestDuration(input_file_, duration_)) {
+    return false;
+  }
+
+  chunks_.clear();
+  size_t pos = 0;
+
+  for (int i = 0; pos < duration_; ++i) {
+    // TODO refactor dumb algorithm
+    size_t tail = pos + 60000000ULL;
+
+    if (tail > duration_) {
+      tail = duration_;
+    }
+
+    std::filesystem::path ch_fname;
+    std::stringstream suffix;
+    suffix << output_file_.stem().string() << "." << std::setw(6) <<
+        std::setfill('0') << i << output_file_.extension().string(); // TODO check existance of file
+    auto parent = output_file_.parent_path(); // TODO check for empty or other
+
+    Chunk ch;
+    ch.FileName = parent / suffix.str();
+    ch.StartTime = pos;
+    ch.Interval = tail - pos;
+    ch.Completed = false;
+
+    chunks_.push_back(ch);
+
+    pos = tail;
+  }
+
+  return true;
 }

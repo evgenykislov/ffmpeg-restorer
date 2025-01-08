@@ -35,17 +35,34 @@ class Task {
   void Clear();
 
  private:
+
+  /*! Описание одного кусочка конвертации */
+  struct Chunk {
+    std::string FileName;
+    size_t StartTime;
+    size_t Interval;
+    bool Completed;
+  };
+
+
   bool is_created_; //!< Признак, что задача инициализирована/прописана
+
+  // Сохраняемая информация по задаче
   std::filesystem::path input_file_;
   std::filesystem::path output_file_;
-
+  size_t duration_;
   std::vector<std::string> arguments_; //!< Аргументы конвертации
+  std::vector<Chunk> chunks_;
+
 
   /*! Обмен данными двух экземпляров */
   void Swap(Task& arg1, Task& arg2) noexcept;
 
   /*! Копирование данных из одного экземпляра в другой */
   void Copy(Task& arg_to, const Task& arg_from);
+
+  /*! Разбить конвертацию на кусочки */
+  bool GenerateChunks();
 
 };
 

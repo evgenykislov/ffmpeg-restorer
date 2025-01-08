@@ -12,6 +12,13 @@
 
 
 bool Str2Duration(const std::string& str, size_t& value) {
+  // Note: use format from https://ffmpeg.org/ffmpeg-utils.html#time-duration-syntax
+  //  [-][HH:]MM:SS[.m...]
+  //  HH expresses the number of hours, MM the number of minutes for a maximum of 2 digits, and SS the number of seconds for a maximum of 2 digits. The m at the end expresses decimal value for SS.
+
+  // TODO check parts of seconds is not microseconds only
+  // TODO check time without hours
+
   if (str.empty()) { return false; }
   unsigned long long hour, minute, second, micro;
   auto res = std::sscanf(str.c_str(), "%llu:%llu:%llu.%llu", &hour, &minute,
@@ -20,6 +27,23 @@ bool Str2Duration(const std::string& str, size_t& value) {
   value = hour * 3600 + minute * 60 + second;
   value = value * 1000000 + micro;
   return true;
+}
+
+std::string Duration2Str(size_t value) {
+  std::stringstream str;
+
+  size_t whole_sec = value / 1000000ULL;
+  size_t microsec = value % 1000000ULL;
+
+  unsigned int hour = whole_sec / 3600;
+  unsigned int tail = whole_sec % 3600;
+  unsigned int minutes = tail / 60;
+  unsigned int seconds = tail % 60;
+
+  str << std::setw(2) << std::setfill('0') << hour << ":" << std::setw(2) <<
+      std::setfill('0') << minutes << ":" << std::setw(2) << std::setfill('0') <<
+      seconds << "." << std::setw(6) << std::setfill('0') << microsec;
+  return str.str();
 }
 
 
@@ -107,12 +131,12 @@ bool FFmpeg::ParseKeyFrames(const std::string& value, std::vector<size_t>& key_f
 FFmpeg::~FFmpeg() {
 }
 
-bool FFmpeg::RequestDuration(const std::string& fname, size_t& duration_mcs) {
+bool FFmpeg::RequestDuration(const std::filesystem::path& fname, size_t& duration_mcs) {
   try {
     std::vector<std::string> arguments = {"-v", "error",
       "-show_entries", "format=duration", "-sexagesimal", "-of",
       "default=noprint_wrappers=1:nokey=1"};
-    arguments.push_back(fname);
+    arguments.push_back(fname.string());
 
     std::string output;
     std::string errout;
@@ -164,14 +188,18 @@ bool FFmpeg::DoConvertation(std::filesystem::path input_file,
     const std::vector<std::string>& arguments) {
 
   try {
-    std::vector<std::string> raw_args = {"-hide_banner", "-y", "-i",
-        input_file.string()};
+    std::vector<std::string> raw_args = {"-hide_banner", "-y", "-ss",
+        Duration2Str(start_time), "-t", Duration2Str(interval),
+        "-i", input_file.string(), };
     raw_args.insert(std::end(raw_args), std::begin(arguments), std::end(arguments));
     raw_args.push_back(output_file.string());
 
     std::string output;
     std::string errout;
     if (!RunApplication("ffmpeg", raw_args, output, errout)) {
+
+      std::cout << "ERROR:" << std::endl << errout << std::endl;
+
       return false;
     }
 

@@ -11,10 +11,10 @@ class FFmpeg {
   virtual ~FFmpeg();
 
   /*! Запросить длительность медиафайла
-  \param fname полный путь к файлу в нативной кодировке
+  \param fname полный путь к файлу
   \param duration_mcs возвращаемая длительность в микросекундах
   \return признак успешности запроса длительности */
-  bool RequestDuration(const std::string& fname, size_t& duration_mcs);
+  bool RequestDuration(const std::filesystem::path& fname, size_t& duration_mcs);
 
   /*! Запросить список позиций ключевых кадров
   \param fname полный путь к файлу в нативной кодировке
