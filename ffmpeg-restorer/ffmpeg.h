@@ -1,6 +1,7 @@
 #ifndef FFMPEG_H
 #define FFMPEG_H
 
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -21,8 +22,18 @@ class FFmpeg {
   \return признак успешности выполнения запроса */
   bool RequestKeyFrames(const std::string& fname, std::vector<size_t>& key_frames);
 
-  /*! Выполнить конвертацию */
-  bool DoConvertation(const std::vector<std::string>& arguments);
+  /*! Выполнить конвертацию фрагмента в отдельный файл. Если выходной файл существует,
+  то он будет перезаписан (предполагается, что был ранее сбой в конвертации и получился
+  битый файл).
+  \param input_file исходный файл
+  \param output_file выходной (результирующий) файл
+  \param начало фрагмента для конвертации, в микросекундах
+  \param длительность фрагмента для конвертации, в микросекундах
+  \param arguments аргументы конвертации для ffmpeg
+  \return признак успешно сделанной конвертации */
+  bool DoConvertation(std::filesystem::path input_file,
+      std::filesystem::path output_file, size_t start_time, size_t interval,
+      const std::vector<std::string>& arguments);
 
  private:
   FFmpeg(const FFmpeg&) = delete;

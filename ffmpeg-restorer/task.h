@@ -49,6 +49,4 @@ class Task {
 
 };
 
-Task Create;
-
 #endif // TASK_H

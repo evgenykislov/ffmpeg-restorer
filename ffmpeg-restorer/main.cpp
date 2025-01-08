@@ -2,6 +2,7 @@
 #include <iostream>
 
 #include "ffmpeg.h"
+#include "task.h"
 
 
 void PrintHelp() {
@@ -18,19 +19,14 @@ int main(int argc, char** argv) {
 
   // Добавим новое задание
 
-
-
-  if (argc > 1) {
-    FFmpeg p;
-    size_t duration;
-    if (p.RequestDuration(argv[1], duration)) {
-      std::cout << "Dur-Dur: " << duration << std::endl;
-    }
-
-    std::vector<size_t> a;
-    if (p.RequestKeyFrames(argv[1], a)) {
-      std::cout << "Dur-Dur: " << duration << std::endl;
-    }
+  Task t;
+  if (!t.CreateFromArguments(argc - 1, argv + 1)) {
+    std::cerr << "Can't create task from arguments" << std::endl;
+    return 1;
   }
+
+  t.Run();
+
+
   return 0;
 }

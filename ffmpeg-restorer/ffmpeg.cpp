@@ -1,5 +1,6 @@
 #include "ffmpeg.h"
 
+#include <cassert>
 #include <iostream>
 #include <limits>
 #include <sstream>
@@ -93,7 +94,8 @@ bool FFmpeg::ParseDuration(const std::string& value, size_t& duration_mcs) {
 }
 
 bool FFmpeg::ParseKeyFrames(const std::string& value, std::vector<size_t>& key_frames) {
-
+  assert(false); // TODO Not implemented
+  return false;
 }
 
 FFmpeg::~FFmpeg() {
@@ -142,6 +144,31 @@ bool FFmpeg::RequestKeyFrames(const std::string& fname, std::vector<size_t>& key
 //      std::cerr << "ffprobe returns unknown format value" << std::endl;
 //      return false;
 //    }
+    return true;
+  } catch (std::exception& err) {
+    std::cerr << "Error: " << err.what() << std::endl;
+  }
+  return false;
+}
+
+
+bool FFmpeg::DoConvertation(std::filesystem::path input_file,
+    std::filesystem::path output_file,
+    size_t start_time, size_t interval,
+    const std::vector<std::string>& arguments) {
+
+  try {
+    std::vector<std::string> raw_args = {"-hide_banner", "-y", "-i",
+        input_file.string()};
+    raw_args.insert(std::end(raw_args), std::begin(arguments), std::end(arguments));
+    raw_args.push_back(output_file.string());
+
+    std::string output;
+    std::string errout;
+    if (!RunApplication("ffmpeg", raw_args, output, errout)) {
+      return false;
+    }
+
     return true;
   } catch (std::exception& err) {
     std::cerr << "Error: " << err.what() << std::endl;
