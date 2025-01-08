@@ -34,11 +34,17 @@ bool RunApplication(const std::string& application, const std::vector<std::strin
     raw_args.push_back(nullptr);
 
     reproc::process proc;
+    reproc::options opt;
     reproc::sink::string sout(output);
     reproc::sink::string serr(errout);
     std::error_code err;
 
-    err = proc.start(raw_args.data());
+    opt.redirect.parent = false;
+    opt.redirect.in.type = reproc::redirect::discard;
+    opt.redirect.out.type = reproc::redirect::pipe;
+    opt.redirect.err.type = reproc::redirect::pipe;
+
+    err = proc.start(raw_args.data(), opt);
     if (err == std::errc::no_such_file_or_directory) {
       std::cerr << "Error: ffprobe not found. Install ffmpeg pack" << std::endl;
       return false;
