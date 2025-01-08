@@ -209,3 +209,24 @@ bool FFmpeg::DoConvertation(std::filesystem::path input_file,
   }
   return false;
 }
+
+bool FFmpeg::DoConcatenation(std::filesystem::path list_file, std::filesystem::path output_file) {
+  try {
+    std::vector<std::string> raw_args = {"-hide_banner", "-safe", "0", "-f", "concat", "-y", "-i",
+        list_file.string(), "-c", "copy", output_file.string()};
+
+    std::string output;
+    std::string errout;
+    if (!RunApplication("ffmpeg", raw_args, output, errout)) {
+
+      std::cout << "ERROR:" << std::endl << errout << std::endl;
+
+      return false;
+    }
+
+    return true;
+  } catch (std::exception& err) {
+    std::cerr << "Error: " << err.what() << std::endl;
+  }
+  return false;
+}

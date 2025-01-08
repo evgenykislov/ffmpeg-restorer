@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <chrono>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -76,6 +77,10 @@ bool Task::CreateFromArguments(int argc, char** argv) {
       throw std::invalid_argument("failed to parse input file");
     }
 
+    if (!GenerateListFile()) {
+      throw std::invalid_argument("failed to save list file");
+    }
+
     is_created_ = true;
     return true;
   } catch (std::invalid_argument&) {
@@ -93,16 +98,17 @@ bool Task::Run() {
     return false;
   }
 
+  FFmpeg conv;
   bool result = true;
   for (auto it = chunks_.begin(); it != chunks_.end(); ++it) {
     auto p1 = std::chrono::steady_clock::now();
-    FFmpeg conv;
-    conv.DoConvertation(input_file_, it->FileName, it->StartTime, it->Interval, arguments_);
+    conv.DoConvertation(input_file_, it->FileName, it->StartTime, it->Interval, arguments_); // TODO check result
     auto p2 = std::chrono::steady_clock::now();
 
     size_t prc = (it->StartTime + it->Interval) * 100 / duration_;
     std::cout << prc << "%" << ". Process " << std::chrono::duration_cast<std::chrono::seconds>(p2 - p1).count() << "s" << std::endl;
   }
+  conv.DoConcatenation(list_file_, output_file_); // TODO check result
 
   return true; // TODO check return value
 }
@@ -113,6 +119,7 @@ void Task::Clear() {
   arguments_.clear();
   input_file_.clear();
   output_file_.clear();
+  list_file_.clear();
 }
 
 void Task::Swap(Task& arg1, Task& arg2) noexcept {
@@ -120,6 +127,7 @@ void Task::Swap(Task& arg1, Task& arg2) noexcept {
   std::swap(arg1.arguments_, arg2.arguments_);
   std::swap(arg1.input_file_, arg2.input_file_);
   std::swap(arg1.output_file_, arg2.output_file_);
+  std::swap(arg1.list_file_, arg2.list_file_);
 }
 
 
@@ -128,6 +136,7 @@ void Task::Copy(Task& arg_to, const Task& arg_from) {
   arg_to.arguments_ = arg_from.arguments_;
   arg_to.input_file_ = arg_from.input_file_;
   arg_to.output_file_ = arg_from.output_file_;
+  arg_to.list_file_ = arg_from.list_file_;
 }
 
 bool Task::GenerateChunks() {
@@ -165,5 +174,24 @@ bool Task::GenerateChunks() {
     pos = tail;
   }
 
+
+
+  return true;
+}
+
+bool Task::GenerateListFile() {
+  std::filesystem::path ch_fname;
+  std::stringstream suffix;
+  suffix << output_file_.stem().string() << ".file_list.txt"; // TODO check existance of file
+  auto parent = output_file_.parent_path(); // TODO check for empty or other
+  list_file_ = parent / suffix.str();
+
+  std::ofstream f(list_file_.string(), std::ios_base::out | std::ios_base::trunc);
+  for (auto it = chunks_.begin(); it != chunks_.end(); ++it) {
+    f << "file '" << it->FileName.string() << "'" << std::endl;
+  }
+  if (!f) {
+    return false;
+  }
   return true;
 }

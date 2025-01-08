@@ -25,8 +25,8 @@ class FFmpeg {
   /*! Выполнить конвертацию фрагмента в отдельный файл. Если выходной файл существует,
   то он будет перезаписан (предполагается, что был ранее сбой в конвертации и получился
   битый файл).
-  \param input_file исходный файл
-  \param output_file выходной (результирующий) файл
+  \param input_file имя исходного файл
+  \param output_file имя выходного файла
   \param начало фрагмента для конвертации, в микросекундах
   \param длительность фрагмента для конвертации, в микросекундах
   \param arguments аргументы конвертации для ffmpeg
@@ -34,6 +34,12 @@ class FFmpeg {
   bool DoConvertation(std::filesystem::path input_file,
       std::filesystem::path output_file, size_t start_time, size_t interval,
       const std::vector<std::string>& arguments);
+
+  /*! Объединить фрагменты видео в один файл
+  \param list_file имя файл со списком фуйлов-фрагметов
+  \param output_file имя суммарного файла
+  \return признак успешного объединения */
+  bool DoConcatenation(std::filesystem::path list_file, std::filesystem::path output_file);
 
  private:
   FFmpeg(const FFmpeg&) = delete;

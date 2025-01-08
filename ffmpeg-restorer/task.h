@@ -38,7 +38,7 @@ class Task {
 
   /*! Описание одного кусочка конвертации */
   struct Chunk {
-    std::string FileName;
+    std::filesystem::path FileName;
     size_t StartTime;
     size_t Interval;
     bool Completed;
@@ -50,6 +50,7 @@ class Task {
   // Сохраняемая информация по задаче
   std::filesystem::path input_file_;
   std::filesystem::path output_file_;
+  std::filesystem::path list_file_;
   size_t duration_;
   std::vector<std::string> arguments_; //!< Аргументы конвертации
   std::vector<Chunk> chunks_;
@@ -64,6 +65,8 @@ class Task {
   /*! Разбить конвертацию на кусочки */
   bool GenerateChunks();
 
+  /*! Сгенерировать файл-список фрагментов для последующего объединения */
+  bool GenerateListFile();
 };
 
 #endif // TASK_H
