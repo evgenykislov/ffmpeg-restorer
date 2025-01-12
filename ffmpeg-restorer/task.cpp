@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <chrono>
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -9,6 +10,11 @@
 #include <utility>
 
 #include "ffmpeg.h"
+#include "home-dir.h"
+
+namespace fs = std::filesystem;
+
+const std::string kTaskFolder = ".ffmpeg-restorer";
 
 
 Task::Task(): is_created_(false) {
@@ -80,6 +86,10 @@ bool Task::CreateFromArguments(int argc, char** argv) {
     if (!GenerateListFile()) {
       throw std::invalid_argument("failed to save list file");
     }
+
+    size_t id;
+    fs::path task_path;
+    CreateNewTaskStorage(id, task_path); // TODO Check result
 
     is_created_ = true;
     return true;
@@ -203,4 +213,45 @@ bool Task::GenerateListFile() {
     return false;
   }
   return true;
+}
+
+
+bool Task::CreateNewTaskStorage(size_t& id, std::filesystem::__cxx11::path& task_path) {
+  try {
+    fs::path hd = HomeDirLibrary::GetHomeDir();
+    if (hd.empty()) {
+      std::cerr << "ERROR: There isn't home directory to store user files" << std::endl;
+      return false;
+    }
+
+    task_path = hd / kTaskFolder;
+    fs::create_directory(task_path);
+    // Найдём существующий максимальный номер (или ноль)
+    id = 0;
+    for (const auto& item: fs::directory_iterator(task_path)) {
+      if (!item.is_directory()) { continue; }
+      auto name = item.path().filename().string();
+      long long num = 0;
+      try {
+        num = std::stoll(name);
+        if (num < 0) { continue; }
+      } catch (std::exception&) {
+        continue;
+      }
+
+      assert(num >= 0);
+      size_t sn = (size_t)num;
+      if (id < sn) {
+        id = sn;
+      }
+    }
+
+    ++id;
+    task_path /= std::to_string(id);
+    fs::create_directory(task_path);
+    return fs::is_directory(task_path);
+  } catch (std::exception& err) {
+    std::cerr << "ERROR: Can't create task: " << err.what() << std::endl;
+  }
+  return false;
 }
