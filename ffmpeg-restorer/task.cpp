@@ -128,6 +128,10 @@ void Task::Swap(Task& arg1, Task& arg2) noexcept {
   std::swap(arg1.input_file_, arg2.input_file_);
   std::swap(arg1.output_file_, arg2.output_file_);
   std::swap(arg1.list_file_, arg2.list_file_);
+  std::swap(arg1.duration_, arg2.duration_);
+  std::swap(arg1.chunks_, arg2.chunks_);
+  std::swap(arg1.interim_video_file_, arg2.interim_video_file_);
+  std::swap(arg1.interim_data_file_, arg2.interim_data_file_);
 }
 
 
@@ -137,7 +141,12 @@ void Task::Copy(Task& arg_to, const Task& arg_from) {
   arg_to.input_file_ = arg_from.input_file_;
   arg_to.output_file_ = arg_from.output_file_;
   arg_to.list_file_ = arg_from.list_file_;
+  arg_to.duration_ = arg_from.duration_;
+  arg_to.chunks_ = arg_from.chunks_;
+  arg_to.interim_video_file_ = arg_from.interim_video_file_;
+  arg_to.interim_data_file_ = arg_from.interim_data_file_;
 }
+
 
 bool Task::GenerateChunks() {
   FFmpeg fm;

@@ -51,6 +51,8 @@ class Task {
   std::filesystem::path input_file_;
   std::filesystem::path output_file_;
   std::filesystem::path list_file_;
+  std::filesystem::path interim_video_file_;
+  std::filesystem::path interim_data_file_;
   size_t duration_;
   std::vector<std::string> arguments_; //!< Аргументы конвертации
   std::vector<Chunk> chunks_;
@@ -67,6 +69,10 @@ class Task {
 
   /*! Сгенерировать файл-список фрагментов для последующего объединения */
   bool GenerateListFile();
+
+  /*! Выделить не-видеоданные в отдельный файл */
+  // bool ExtractNonVideo();
+
 };
 
 #endif // TASK_H
