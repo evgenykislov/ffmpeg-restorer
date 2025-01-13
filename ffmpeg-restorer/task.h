@@ -46,10 +46,12 @@ class Task {
 
 
   bool is_created_; //!< Признак, что задача инициализирована/прописана
+  std::filesystem::path task_cfg_path_; //!< полное имя файла с настройками по задаче
 
   // Сохраняемая информация по задаче
   std::filesystem::path input_file_;
   std::filesystem::path output_file_;
+  bool output_file_complete_;
   std::filesystem::path list_file_;
   std::filesystem::path interim_video_file_;
   std::filesystem::path interim_data_file_;
@@ -64,8 +66,9 @@ class Task {
   /*! Копирование данных из одного экземпляра в другой */
   void Copy(Task& arg_to, const Task& arg_from);
 
-  /*! Разбить конвертацию на кусочки */
-  bool GenerateChunks();
+  /*! Разбить конвертацию на кусочки
+  TODO Описание */
+  bool GenerateChunks(const std::filesystem::path& task_path);
 
   /*! Сгенерировать файл-список фрагментов для последующего объединения */
   bool GenerateListFile();
@@ -80,6 +83,10 @@ class Task {
   \param task_path возвращает путь для размещения всех файлов задачи
   \return признак успешного создания хранилища */
   bool CreateNewTaskStorage(size_t& id, std::filesystem::path& task_path);
+
+  /*! Сохранить изменённое состояние задачи в конфигурационном файле
+  \return признак успешной записи */
+  bool Save();
 
 };
 

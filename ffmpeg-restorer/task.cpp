@@ -11,13 +11,18 @@
 
 #include "ffmpeg.h"
 #include "home-dir.h"
+#include "json.hpp"
 
 namespace fs = std::filesystem;
+using json = nlohmann::json;
 
 const std::string kTaskFolder = ".ffmpeg-restorer";
-
+const std::string kTaskCfgFile = "task.cfg";
+const std::string kInterimVideoFile = "video.mkv";
+const std::string kInterimDataFile = "data.mkv";
 
 Task::Task(): is_created_(false) {
+  output_file_complete_ = false;
 
 }
 
@@ -54,6 +59,8 @@ Task::~Task()
 bool Task::CreateFromArguments(int argc, char** argv) {
   try {
     Clear();
+
+
     // Найдём входной и выходной файл. Остальное запомним
     // Входной файл ищём по последовательности аргументов
     // -i filename (и это не последние аргументы)
@@ -79,7 +86,18 @@ bool Task::CreateFromArguments(int argc, char** argv) {
       throw std::invalid_argument("input/output file isn't specified");
     }
 
-    if (!GenerateChunks()) {
+    // Создаём хранилище для задачи
+    size_t id;
+    fs::path task_path;
+    if (!CreateNewTaskStorage(id, task_path)) {
+      throw std::runtime_error("can't create task storage");
+    }
+
+    task_cfg_path_ = task_path / kTaskCfgFile;
+    interim_video_file_ = task_path / kInterimVideoFile;
+    interim_data_file_ = task_path / kInterimDataFile;
+
+    if (!GenerateChunks(task_path)) {
       throw std::invalid_argument("failed to parse input file");
     }
 
@@ -87,9 +105,10 @@ bool Task::CreateFromArguments(int argc, char** argv) {
       throw std::invalid_argument("failed to save list file");
     }
 
-    size_t id;
-    fs::path task_path;
-    CreateNewTaskStorage(id, task_path); // TODO Check result
+
+    if (!Save()) {
+      throw std::runtime_error("can't save task info");
+    }
 
     is_created_ = true;
     return true;
@@ -134,9 +153,11 @@ void Task::Clear() {
 
 void Task::Swap(Task& arg1, Task& arg2) noexcept {
   std::swap(arg1.is_created_, arg2.is_created_);
+  std::swap(arg1.task_cfg_path_, arg2.task_cfg_path_);
   std::swap(arg1.arguments_, arg2.arguments_);
   std::swap(arg1.input_file_, arg2.input_file_);
   std::swap(arg1.output_file_, arg2.output_file_);
+  std::swap(arg1.output_file_complete_, arg2.output_file_complete_);
   std::swap(arg1.list_file_, arg2.list_file_);
   std::swap(arg1.duration_, arg2.duration_);
   std::swap(arg1.chunks_, arg2.chunks_);
@@ -147,9 +168,11 @@ void Task::Swap(Task& arg1, Task& arg2) noexcept {
 
 void Task::Copy(Task& arg_to, const Task& arg_from) {
   arg_to.is_created_ = arg_from.is_created_;
+  arg_to.task_cfg_path_ = arg_from.task_cfg_path_;
   arg_to.arguments_ = arg_from.arguments_;
   arg_to.input_file_ = arg_from.input_file_;
   arg_to.output_file_ = arg_from.output_file_;
+  arg_to.output_file_complete_ = arg_from.output_file_complete_;
   arg_to.list_file_ = arg_from.list_file_;
   arg_to.duration_ = arg_from.duration_;
   arg_to.chunks_ = arg_from.chunks_;
@@ -158,7 +181,7 @@ void Task::Copy(Task& arg_to, const Task& arg_from) {
 }
 
 
-bool Task::GenerateChunks() {
+bool Task::GenerateChunks(const std::filesystem::path& task_path) {
   FFmpeg fm;
 
   if (!fm.RequestDuration(input_file_, duration_)) {
@@ -178,12 +201,10 @@ bool Task::GenerateChunks() {
 
     std::filesystem::path ch_fname;
     std::stringstream suffix;
-    suffix << output_file_.stem().string() << "." << std::setw(6) <<
-        std::setfill('0') << i << output_file_.extension().string(); // TODO check existance of file
-    auto parent = output_file_.parent_path(); // TODO check for empty or other
+    suffix << "chunk_" << std::setw(6) << std::setfill('0') << i << ".mkv";
 
     Chunk ch;
-    ch.FileName = parent / suffix.str();
+    ch.FileName = task_path / suffix.str();
     ch.StartTime = pos;
     ch.Interval = tail - pos;
     ch.Completed = false;
@@ -192,8 +213,6 @@ bool Task::GenerateChunks() {
 
     pos = tail;
   }
-
-
 
   return true;
 }
@@ -253,5 +272,55 @@ bool Task::CreateNewTaskStorage(size_t& id, std::filesystem::__cxx11::path& task
   } catch (std::exception& err) {
     std::cerr << "ERROR: Can't create task: " << err.what() << std::endl;
   }
+  return false;
+}
+
+bool Task::Save() {
+  try {
+    // Стандартная форматка
+    json j = {
+      {"input", nullptr},
+      {"output", {
+        {"0", nullptr}
+      }},
+      {"interim", {
+        {"video", {
+          {"name", nullptr},
+          {"complete", false}
+        }},
+        {"data", {
+          {"name", nullptr},
+          {"complete", false}
+        }}
+      }},
+      {"chunks", nullptr}
+    };
+
+    // Заполнение
+    j["input"]["0"]["name"] = input_file_.u8string();
+    j["input"]["0"]["arguments"] = arguments_;
+    j["output"]["0"]["name"] = output_file_.u8string();
+    j["output"]["0"]["arguments"] = arguments_;
+    j["output"]["0"]["complete"] = output_file_complete_;
+
+    for (size_t i = 0; i < chunks_.size(); ++i) {
+      auto is = std::to_string(i);
+      j["chunks"][is]["name"] = chunks_[i].FileName.u8string();
+      j["chunks"][is]["start"] = chunks_[i].StartTime;
+      j["chunks"][is]["duration"] = chunks_[i].Interval;
+      j["chunks"][is]["complete"] = chunks_[i].Completed;
+    }
+
+    std::ofstream f(task_cfg_path_, std::ios_base::trunc);
+    f << std::setw(2) << j;
+    return true;
+  }
+  catch (const json::type_error& err) {
+    std::cerr << "FORMAT ERROR: " << err.what() << std::endl;
+  }
+  catch (std::exception& err) {
+    std::cerr << "ERROR: " << err.what() << std::endl;
+  }
+
   return false;
 }

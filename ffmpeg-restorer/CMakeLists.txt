@@ -17,12 +17,14 @@ set(HEADER_FILES
   "ffmpeg.h"
   "task.h"
   "../libs/home-dir/home-dir.h"
+  "../libs/json/json.hpp"
   )
 
 add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES})
 
 target_include_directories(${PROJECT_NAME} PRIVATE "../libs/reproc/reproc++/include")
 target_include_directories(${PROJECT_NAME} PRIVATE "../libs/home-dir")
+target_include_directories(${PROJECT_NAME} PRIVATE "../libs/json")
 
 target_link_libraries(${PROJECT_NAME} reproc++)
 
