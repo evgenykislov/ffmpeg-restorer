@@ -5,13 +5,24 @@
 #include "ffmpeg.h"
 #include "task.h"
 
+const std::string kCommandHelp1 = "help";
+const std::string kCommandHelp2 = "--help";
 const std::string kCommandList = "list";
 
+// clang-format off
 
-void PrintHelp() {
-  // TODO Implementation
-  assert(false);
-}
+const char kHelpMessage[] =
+    "ffmpeg-restorer is utility for media files convertation with progress\n"
+    "Usage:\n"
+    "  ffmpeg-restorer [command [arguments]]\n"
+    "Commands:\n"
+    "  help, --help - print help\n"
+    "  list - print list of tasks\n"
+    "Run without command resume tasks, added earlier\n";
+
+// clang-format on
+
+void PrintHelp() { std::cout << kHelpMessage << std::endl; }
 
 
 /*! Выполнить команду list - выдать список задач */
@@ -30,6 +41,8 @@ int main(int argc, char** argv) {
 
     if (command == kCommandList) {
       CommandList();
+    } else if (command == kCommandHelp1 || command == kCommandHelp2) {
+      PrintHelp();
     }
 
     return 0;
