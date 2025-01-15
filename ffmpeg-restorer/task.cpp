@@ -119,6 +119,10 @@ bool Task::CreateFromArguments(int argc, char** argv) {
   return false;
 }
 
+bool Task::CreateFromID(size_t id) {
+
+}
+
 
 bool Task::Run() {
   assert(is_created_);
@@ -150,6 +154,38 @@ void Task::Clear() {
   output_file_.clear();
   list_file_.clear();
 }
+
+std::vector<size_t> Task::GetTasks() {
+  try {
+    std::vector<size_t> result;
+    fs::path hd = HomeDirLibrary::GetHomeDir();
+    if (hd.empty()) {
+      return result;
+    }
+
+    auto task_path = hd / kTaskFolder;
+    // переберём все задачи
+    for (const auto& item: fs::directory_iterator(task_path)) {
+      if (!item.is_directory()) { continue; }
+      auto name = item.path().filename().string();
+      long long num = 0;
+      try {
+        num = std::stoll(name);
+        if (num < 0) { continue; }
+      } catch (std::exception&) {
+        continue;
+      }
+
+      assert(num >= 0);
+      result.push_back((size_t)num);
+    }
+
+    return result;
+  } catch (std::exception& err) {
+  }
+  return {};
+}
+
 
 void Task::Swap(Task& arg1, Task& arg2) noexcept {
   std::swap(arg1.is_created_, arg2.is_created_);
