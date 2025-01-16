@@ -40,7 +40,6 @@ class Task {
   static std::vector<size_t> GetTasks();
 
  private:
-
   /*! Описание одного кусочка конвертации */
   struct Chunk {
     std::filesystem::path FileName;
@@ -50,8 +49,9 @@ class Task {
   };
 
 
-  bool is_created_; //!< Признак, что задача инициализирована/прописана
-  std::filesystem::path task_cfg_path_; //!< полное имя файла с настройками по задаче
+  bool is_created_;  //!< Признак, что задача инициализирована/прописана
+  std::filesystem::path
+      task_cfg_path_;  //!< полное имя файла с настройками по задаче
 
   // Сохраняемая информация по задаче
   std::filesystem::path input_file_;
@@ -61,7 +61,8 @@ class Task {
   std::filesystem::path interim_video_file_;
   std::filesystem::path interim_data_file_;
   size_t duration_;
-  std::vector<std::string> arguments_; //!< Аргументы конвертации
+  std::vector<std::string> input_arguments_;  //!< Аргументы конвертации
+  std::vector<std::string> output_arguments_;  //!< Аргументы конвертации
   std::vector<Chunk> chunks_;
 
 
@@ -82,8 +83,9 @@ class Task {
   // bool ExtractNonVideo();
 
 
-  /*! Создать новую папку с уникальным номером в хранилище задач. Пути и размещение файлов описаны в
-  notes/storage.txt. В случае ошибки содержимое возвращаемых аргументов не определено
+  /*! Создать новую папку с уникальным номером в хранилище задач. Пути и
+  размещение файлов описаны в notes/storage.txt. В случае ошибки содержимое
+  возвращаемых аргументов не определено
   \param id возвращает созданный (уникальный) идентификатор задачи
   \param task_path возвращает путь для размещения всех файлов задачи
   \return признак успешного создания хранилища */
@@ -93,6 +95,11 @@ class Task {
   \return признак успешной записи */
   bool Save();
 
+  /*! Загрузить параметры задачи из конфигурационного файла задачи.
+  Дополнительных проверок не проводится.
+  \param task_path_cfg полный путь до конфигурациооного файла задачи
+  \return признак успешной загрузки */
+  bool Load(const std::filesystem::path& task_path_cfg);
 };
 
-#endif // TASK_H
+#endif  // TASK_H
