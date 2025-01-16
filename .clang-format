@@ -9,4 +9,5 @@ SortIncludes: 'false'
 SpaceBeforeCtorInitializerColon: 'false'
 SpaceBeforeInheritanceColon: 'false'
 
+CommentPragmas: '^\\.+'
 ...
