@@ -33,7 +33,6 @@ void PrintHelp() { std::cout << kHelpMessage << std::endl; }
 /*! Выполнить команду list - выдать список задач */
 void CommandList() {
   auto tasks = Task::GetTasks();
-  std::sort(tasks.begin(), tasks.end());
   for (auto it = tasks.begin(); it != tasks.end(); ++it) {
     std::cout << *it << std::endl;
   }
@@ -48,6 +47,10 @@ void ProcessAllTasks() {
     Task t;
     if (t.CreateFromID(*it)) {
       t.Run();
+    } else {
+      std::cerr << "Task " << *it << " is corrupted and will be removed"
+                << std::endl;
+      Task::DeleteTask(*it);
     }
   }
 }
