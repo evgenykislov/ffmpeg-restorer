@@ -119,6 +119,24 @@ bool Task::CreateFromArguments(int argc, char** argv) {
 
 bool Task::CreateFromID(size_t id) {}
 
+bool Task::DeleteTask(size_t id) {
+  try {
+    fs::path hd = HomeDirLibrary::GetHomeDir();
+    if (hd.empty()) {
+      std::cerr << "ERROR: There isn't home directory with user files"
+                << std::endl;
+      return false;
+    }
+
+    auto task_path = hd / kTaskFolder / std::to_string(id);
+    fs::remove_all(task_path);
+    return true;
+  } catch (std::exception& err) {
+    std::cerr << "ERROR: Can't delete task: " << err.what() << std::endl;
+  }
+  return false;
+}
+
 
 bool Task::Run() {
   assert(is_created_);
@@ -281,8 +299,7 @@ bool Task::GenerateListFile() {
 }
 
 
-bool Task::CreateNewTaskStorage(
-    size_t& id, std::filesystem::__cxx11::path& task_path) {
+bool Task::CreateNewTaskStorage(size_t& id, std::filesystem::path& task_path) {
   try {
     fs::path hd = HomeDirLibrary::GetHomeDir();
     if (hd.empty()) {
