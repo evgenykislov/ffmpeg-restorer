@@ -442,7 +442,7 @@ bool Task::Load(const std::filesystem::path& task_path_cfg) {
       }
       chunks_[id] = ch;
     }
-
+    return true;
   } catch (const json::type_error& err) {
     std::cerr << "FORMAT ERROR: " << err.what() << std::endl;
   } catch (std::exception& err) {
