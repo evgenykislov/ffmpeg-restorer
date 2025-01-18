@@ -66,7 +66,9 @@ class Task {
   bool output_file_complete_;
   std::filesystem::path list_file_;
   std::filesystem::path interim_video_file_;
+  bool interim_video_file_complete_;
   std::filesystem::path interim_data_file_;
+  bool interim_data_file_complete_;
   size_t duration_;
   std::vector<std::string> input_arguments_;  //!< Аргументы конвертации
   std::vector<std::string> output_arguments_;  //!< Аргументы конвертации
@@ -111,6 +113,10 @@ class Task {
   /*! Провести проверки по загруженным данным по задаче
   \return признак, что задача провалидирована/исправлена и может быть выполнена */
   bool Validate();
+
+  /*! Проведём выделение аудио и др. данных
+  \return признак успешного выделения */
+  bool RunSplit();
 };
 
 #endif  // TASK_H

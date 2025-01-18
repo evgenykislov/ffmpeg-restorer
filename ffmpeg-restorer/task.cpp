@@ -14,6 +14,7 @@
 #include "json.hpp"
 
 namespace fs = std::filesystem;
+namespace chr = std::chrono;
 using json = nlohmann::json;
 
 const std::string kTaskFolder = ".ffmpeg-restorer";
@@ -21,7 +22,18 @@ const std::string kTaskCfgFile = "task.cfg";
 const std::string kInterimVideoFile = "video.mkv";
 const std::string kInterimDataFile = "data.mkv";
 
-Task::Task(): is_created_(false) { output_file_complete_ = false; }
+std::string Microseconds2SecondsString(int value_ms) {
+  std::stringstream s;
+  s << value_ms / 1000 << "." << std::setw(3) << std::setfill('0')
+    << value_ms % 1000;
+  return s.str();
+}
+
+Task::Task(): is_created_(false) {
+  output_file_complete_ = false;
+  interim_video_file_complete_ = false;
+  interim_data_file_complete_ = false;
+}
 
 Task::Task(const Task& arg) { Copy(*this, arg); }
 
@@ -263,7 +275,10 @@ void Task::Swap(Task& arg1, Task& arg2) noexcept {
   std::swap(arg1.duration_, arg2.duration_);
   std::swap(arg1.chunks_, arg2.chunks_);
   std::swap(arg1.interim_video_file_, arg2.interim_video_file_);
+  std::swap(
+      arg1.interim_video_file_complete_, arg2.interim_video_file_complete_);
   std::swap(arg1.interim_data_file_, arg2.interim_data_file_);
+  std::swap(arg1.interim_data_file_complete_, arg2.interim_data_file_complete_);
 }
 
 
@@ -279,7 +294,9 @@ void Task::Copy(Task& arg_to, const Task& arg_from) {
   arg_to.duration_ = arg_from.duration_;
   arg_to.chunks_ = arg_from.chunks_;
   arg_to.interim_video_file_ = arg_from.interim_video_file_;
+  arg_to.interim_video_file_complete_ = arg_from.interim_video_file_complete_;
   arg_to.interim_data_file_ = arg_from.interim_data_file_;
+  arg_to.interim_data_file_complete_ = arg_from.interim_data_file_complete_;
 }
 
 
@@ -398,6 +415,10 @@ bool Task::Save() {
     j["output"]["0"]["name"] = output_file_.u8string();
     j["output"]["0"]["arguments"] = output_arguments_;
     j["output"]["0"]["complete"] = output_file_complete_;
+    j["interim"]["data"]["name"] = interim_data_file_.u8string();
+    j["interim"]["data"]["complete"] = interim_data_file_complete_;
+    j["interim"]["video"]["name"] = interim_video_file_.u8string();
+    j["interim"]["video"]["complete"] = interim_video_file_complete_;
 
     for (size_t i = 0; i < chunks_.size(); ++i) {
       auto is = std::to_string(i);
@@ -439,6 +460,15 @@ bool Task::Load(const std::filesystem::path& task_path_cfg) {
       output_arguments_.push_back(el.value());
     }
     output_file_complete_ = data["output"]["0"]["complete"];
+
+    strv = data["interim"]["data"].value("name", "");
+    interim_data_file_ = strv;
+    interim_data_file_complete_ =
+        data["interim"]["data"].value("complete", false);
+    strv = data["interim"]["video"].value("name", "");
+    interim_video_file_ = strv;
+    interim_video_file_complete_ =
+        data["interim"]["video"].value("complete", false);
 
     chunks_.clear();
     for (auto& el : data["chunks"].items()) {
@@ -486,12 +516,49 @@ bool Task::Validate() {
     output_file_complete_ = false;
   }
 
+  if (interim_data_file_.empty()) {
+    return false;
+  }
+  if (!fs::exists(interim_data_file_)) {
+    interim_data_file_complete_ = false;
+  }
+  if (interim_video_file_.empty()) {
+    return false;
+  }
+  if (!fs::exists(interim_video_file_)) {
+    interim_video_file_complete_ = false;
+  }
+
   // Проверим существование отдельных файлов
   for (auto it = chunks_.begin(); it != chunks_.end(); ++it) {
-    if (fs::exists(it.FileName)) {
+    if (fs::exists(it->FileName)) {
       it->Completed = false;
     }
   }
 
   return true;
+}
+
+
+bool Task::RunSplit() {
+  std::cout << "Phase 1/4: Extract non-video streams" << std::endl;
+  if (interim_data_file_complete_) {
+    std::cout << "-- passed" << std::endl;
+    return true;
+  }
+  auto nonvideo = input_arguments_;
+  nonvideo.push_back("-vn");
+  FFmpeg conv;
+  auto start = chr::steady_clock::now();
+  bool res = conv.DoConvertation(
+      input_file_, interim_data_file_, {}, {}, nonvideo, output_arguments_);
+  auto finish = chr::steady_clock::now();
+  auto interval = chr::duration_cast<chr::milliseconds>(finish - start).count();
+  auto is = Microseconds2SecondsString(interval);
+
+  if (!res) {
+    std::cerr << "-- complete with error (" << is << " s)" << std::endl;
+    return false;
+  } else {
+  }
 }
