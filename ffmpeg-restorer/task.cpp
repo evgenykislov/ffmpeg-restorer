@@ -443,10 +443,11 @@ bool Task::Save() {
     j["interim"]["video"]["complete"] = interim_video_file_complete_;
 
     for (size_t i = 0; i < chunks_.size(); ++i) {
+      std::string v64;
       auto is = std::to_string(i);
       j["chunks"][is]["name"] = chunks_[i].FileName.u8string();
-      j["chunks"][is]["start"] = chunks_[i].StartTime;
-      j["chunks"][is]["duration"] = chunks_[i].Interval;
+      j["chunks"][is]["start"] = std::to_string(chunks_[i].StartTime);
+      j["chunks"][is]["duration"] = std::to_string(chunks_[i].Interval);
       j["chunks"][is]["complete"] = chunks_[i].Completed;
     }
 
@@ -501,8 +502,10 @@ bool Task::Load(const std::filesystem::path& task_path_cfg) {
       size_t sizev;
       strv = j.value("name", "");
       ch.FileName = strv;
-      ch.StartTime = j.value("start", 0);
-      ch.Interval = j.value("duration", 0);
+      strv = j.value("start", " ");
+      ch.StartTime = std::stoull(strv);
+      strv = j.value("duration", " ");
+      ch.Interval = std::stoull(strv);
       ch.Completed = j.value("complete", false);
       if (chunks_.size() <= id) {
         chunks_.resize(id + 1);
