@@ -107,6 +107,10 @@ class Task {
   \param task_path_cfg полный путь до конфигурациооного файла задачи
   \return признак успешной загрузки */
   bool Load(const std::filesystem::path& task_path_cfg);
+
+  /*! Провести проверки по загруженным данным по задаче
+  \return признак, что задача провалидирована/исправлена и может быть выполнена */
+  bool Validate();
 };
 
 #endif  // TASK_H

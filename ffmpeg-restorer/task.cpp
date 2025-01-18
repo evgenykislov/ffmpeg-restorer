@@ -134,6 +134,12 @@ bool Task::CreateFromID(size_t id) {
       return false;
     }
 
+    if (!Validate()) {
+      std::cerr << "Task " << id
+                << " contains wrong and unrestorable parameters" << std::endl;
+      return false;
+    }
+
     is_created_ = true;
     return true;
   } catch (std::exception& err) {
@@ -459,4 +465,26 @@ bool Task::Load(const std::filesystem::path& task_path_cfg) {
               << std::endl;
   }
   return false;
+}
+
+bool Task::Validate() {
+  if (input_file_.empty()) {
+    return false;
+  }
+  if (output_file_.empty()) {
+    return false;
+  }
+  if (fs::exists(output_file_)) {
+    if (!fs::is_regular_file(output_file_)) {
+      std::cout << "WARNING: target " << output_file_
+                << " exists and it's not a file" << std::endl;
+    }
+  } else {
+    if (output_file_complete_) {
+      // TODO wrong value
+    }
+    output_file_complete_ = false;
+  }
+
+  return true;
 }
