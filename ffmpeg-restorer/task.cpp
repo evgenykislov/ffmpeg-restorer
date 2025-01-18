@@ -21,6 +21,7 @@ const std::string kTaskFolder = ".ffmpeg-restorer";
 const std::string kTaskCfgFile = "task.cfg";
 const std::string kInterimVideoFile = "video.mkv";
 const std::string kInterimDataFile = "data.mkv";
+const std::string kInterimListFile = "list.txt";
 
 std::string Microseconds2SecondsString(int value_ms) {
   std::stringstream s;
@@ -106,6 +107,7 @@ bool Task::CreateFromArguments(int argc, char** argv) {
     task_cfg_path_ = task_path / kTaskCfgFile;
     interim_video_file_ = task_path / kInterimVideoFile;
     interim_data_file_ = task_path / kInterimDataFile;
+    list_file_ = task_path / kInterimListFile;
 
     if (!GenerateChunks(task_path)) {
       throw std::invalid_argument("failed to parse input file");
@@ -114,7 +116,6 @@ bool Task::CreateFromArguments(int argc, char** argv) {
     if (!GenerateListFile()) {
       throw std::invalid_argument("failed to save list file");
     }
-
 
     if (!Save()) {
       throw std::runtime_error("can't save task info");
@@ -359,13 +360,10 @@ bool Task::GenerateChunks(const std::filesystem::path& task_path) {
 }
 
 bool Task::GenerateListFile() {
-  std::filesystem::path ch_fname;
-  std::stringstream suffix;
-  suffix << output_file_.stem().string()
-         << ".file_list.txt";                // TODO check existance of file
-  auto parent = output_file_.parent_path();  // TODO check for empty or other
-  list_file_ = parent / suffix.str();
-
+  assert(!list_file_.empty());
+  if (list_file_.empty()) {
+    return false;
+  }
   std::ofstream f(
       list_file_.string(), std::ios_base::out | std::ios_base::trunc);
   for (auto it = chunks_.begin(); it != chunks_.end(); ++it) {
@@ -428,7 +426,8 @@ bool Task::Save() {
     // Стандартная форматка
     json j = {{"input", nullptr}, {"output", {{"0", nullptr}}},
         {"interim", {{"video", {{"name", nullptr}, {"complete", false}}},
-                        {"data", {{"name", nullptr}, {"complete", false}}}}},
+                        {"data", {{"name", nullptr}, {"complete", false}}},
+                        {"list", {{"name", nullptr}}}}},
         {"chunks", nullptr}};
 
     // Заполнение
@@ -441,6 +440,7 @@ bool Task::Save() {
     j["interim"]["data"]["complete"] = interim_data_file_complete_;
     j["interim"]["video"]["name"] = interim_video_file_.u8string();
     j["interim"]["video"]["complete"] = interim_video_file_complete_;
+    j["interim"]["list"]["name"] = list_file_.u8string();
 
     for (size_t i = 0; i < chunks_.size(); ++i) {
       std::string v64;
@@ -492,6 +492,8 @@ bool Task::Load(const std::filesystem::path& task_path_cfg) {
     interim_video_file_ = strv;
     interim_video_file_complete_ =
         data["interim"]["video"].value("complete", false);
+    strv = data["interim"]["list"].value("name", "");
+    list_file_ = strv;
 
     chunks_.clear();
     for (auto& el : data["chunks"].items()) {
