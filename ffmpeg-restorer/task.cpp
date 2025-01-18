@@ -486,5 +486,12 @@ bool Task::Validate() {
     output_file_complete_ = false;
   }
 
+  // Проверим существование отдельных файлов
+  for (auto it = chunks_.begin(); it != chunks_.end(); ++it) {
+    if (fs::exists(it.FileName)) {
+      it->Completed = false;
+    }
+  }
+
   return true;
 }
