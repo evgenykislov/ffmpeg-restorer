@@ -231,8 +231,7 @@ bool Task::Run() {
   }
 
 
-  conv.DoConcatenation(list_file_, interim_video_file_);  // TODO check result
-
+  RunConcatenation();  // TODO echo
 
   return true;  // TODO check return value
 }
@@ -597,4 +596,32 @@ bool Task::RunSplit() {
     std::cout << "-- complete (" << is << " s)" << std::endl;
   }
   return true;
+}
+
+bool Task::RunConcatenation() {
+  std::cout << "Phase 3/4: Concatenate video chunks ... " << std::flush;
+  if (interim_video_file_complete_) {
+    std::cout << "passed" << std::endl;
+    return true;
+  }
+  FFmpeg conv;
+  auto start = chr::steady_clock::now();
+  bool res = conv.DoConcatenation(
+      list_file_, interim_video_file_);  // TODO check result
+  auto finish = chr::steady_clock::now();
+  auto interval = chr::duration_cast<chr::milliseconds>(finish - start).count();
+  auto is = Microseconds2SecondsString(interval);
+  if (!res) {
+    std::cout << "failed ";
+  } else {
+    interim_video_file_complete_ = true;
+    res = Save();
+    if (!res) {
+      std::cout << " complete, but saving error ";
+    }
+
+    std::cout << " success ";
+  }
+  std::cout << "(" << is << " s)" << std::endl;
+  return res;
 }
