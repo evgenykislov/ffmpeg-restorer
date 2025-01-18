@@ -30,6 +30,7 @@ std::string Microseconds2SecondsString(int value_ms) {
 }
 
 Task::Task(): is_created_(false) {
+  id_ = 0;
   output_file_complete_ = false;
   interim_video_file_complete_ = false;
   interim_data_file_complete_ = false;
@@ -97,9 +98,8 @@ bool Task::CreateFromArguments(int argc, char** argv) {
     }
 
     // Создаём хранилище для задачи
-    size_t id;
     fs::path task_path;
-    if (!CreateNewTaskStorage(id, task_path)) {
+    if (!CreateNewTaskStorage(id_, task_path)) {
       throw std::runtime_error("can't create task storage");
     }
 
@@ -152,6 +152,7 @@ bool Task::CreateFromID(size_t id) {
       return false;
     }
 
+    id_ = id;
     is_created_ = true;
     return true;
   } catch (std::exception& err) {
@@ -187,6 +188,10 @@ bool Task::Run() {
     return false;
   }
 
+  std::cout << "== Task " << id_ << " ==" << std::endl;
+
+  bool split_result = RunSplit();
+
   FFmpeg conv;
   bool result = true;
   auto inarg = input_arguments_;
@@ -208,10 +213,6 @@ bool Task::Run() {
   }
   conv.DoConcatenation(list_file_, interim_video_file_);  // TODO check result
 
-  auto nonvideo = input_arguments_;
-  nonvideo.push_back("-vn");
-  conv.DoConvertation(input_file_, interim_data_file_, {}, {}, nonvideo,
-      output_arguments_);  // TODO check result
 
   return true;  // TODO check return value
 }
@@ -266,6 +267,7 @@ std::vector<size_t> Task::GetTasks() {
 void Task::Swap(Task& arg1, Task& arg2) noexcept {
   std::swap(arg1.is_created_, arg2.is_created_);
   std::swap(arg1.task_cfg_path_, arg2.task_cfg_path_);
+  std::swap(arg1.id_, arg2.id_);
   std::swap(arg1.input_arguments_, arg2.input_arguments_);
   std::swap(arg1.output_arguments_, arg2.output_arguments_);
   std::swap(arg1.input_file_, arg2.input_file_);
@@ -285,6 +287,7 @@ void Task::Swap(Task& arg1, Task& arg2) noexcept {
 void Task::Copy(Task& arg_to, const Task& arg_from) {
   arg_to.is_created_ = arg_from.is_created_;
   arg_to.task_cfg_path_ = arg_from.task_cfg_path_;
+  arg_to.id_ = arg_from.id_;
   arg_to.input_arguments_ = arg_from.input_arguments_;
   arg_to.output_arguments_ = arg_from.output_arguments_;
   arg_to.input_file_ = arg_from.input_file_;
@@ -557,8 +560,17 @@ bool Task::RunSplit() {
   auto is = Microseconds2SecondsString(interval);
 
   if (!res) {
-    std::cerr << "-- complete with error (" << is << " s)" << std::endl;
+    std::cout << "-- complete with error (" << is << " s)" << std::endl;
     return false;
   } else {
+    interim_data_file_complete_ = true;
+    if (!Save()) {
+      std::cout << "-- complete, but saving error (" << is << " s)"
+                << std::endl;
+      return false;
+    }
+
+    std::cout << "-- complete (" << is << " s)" << std::endl;
   }
+  return true;
 }

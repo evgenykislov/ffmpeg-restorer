@@ -58,7 +58,8 @@ class Task {
 
   bool is_created_;  //!< Признак, что задача инициализирована/прописана
   std::filesystem::path
-      task_cfg_path_;  //!< полное имя файла с настройками по задаче
+      task_cfg_path_;  //!< Полное имя файла с настройками по задаче
+  size_t id_;
 
   // Сохраняемая информация по задаче
   std::filesystem::path input_file_;
