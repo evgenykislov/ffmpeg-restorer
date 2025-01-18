@@ -80,7 +80,8 @@ bool RunApplication(const std::string& application,
 
     err = proc.start(raw_args.data(), opt);
     if (err == std::errc::no_such_file_or_directory) {
-      std::cerr << "Error: ffprobe not found. Install ffmpeg pack" << std::endl;
+      std::cerr << "Error: " << application << " not found. Install ffmpeg pack"
+                << std::endl;
       return false;
     } else if (err) {
       std::cerr << "Error: " << err.category().name() << ":" << err.value()
@@ -98,12 +99,13 @@ bool RunApplication(const std::string& application,
     int status = 0;
     std::tie(status, err) = proc.wait(reproc::infinite);
     if (err) {
-      std::cerr << "ffprobe finished with error: " << err.category().name()
-                << ":" << err.value() << std::endl;
+      std::cerr << application
+                << " finished with error: " << err.category().name() << ":"
+                << err.value() << std::endl;
       return false;
     }
     if (status != 0) {
-      std::cerr << "ffprobe returns error " << status << std::endl;
+      // std::cerr << application << " returns error " << status << std::endl;
       return false;
     }
 
@@ -225,8 +227,7 @@ bool FFmpeg::DoConvertation(std::filesystem::path input_file,
     std::string output;
     std::string errout;
     if (!RunApplication("ffmpeg", raw_args, output, errout)) {
-      std::cout << "ERROR:" << std::endl << errout << std::endl;
-
+      // std::cout << "ERROR:" << std::endl << errout << std::endl;
       return false;
     }
 

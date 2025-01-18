@@ -192,25 +192,44 @@ bool Task::Run() {
 
   bool split_result = RunSplit();
 
+  std::cout << "Phase 2/4: Video convertation" << std::endl;
   FFmpeg conv;
   bool result = true;
   auto inarg = input_arguments_;
   inarg.push_back("-an");
   inarg.push_back("-sn");
   inarg.push_back("-dn");
-  for (auto it = chunks_.begin(); it != chunks_.end(); ++it) {
-    auto p1 = std::chrono::steady_clock::now();
-    conv.DoConvertation(input_file_, it->FileName, it->StartTime, it->Interval,
-        inarg, output_arguments_);  // TODO check result
-    auto p2 = std::chrono::steady_clock::now();
-
-    size_t prc = (it->StartTime + it->Interval) * 100 / duration_;
-    std::cout
-        << prc << "%"
-        << ". Process "
-        << std::chrono::duration_cast<std::chrono::seconds>(p2 - p1).count()
-        << "s" << std::endl;
+  int chunk_counter = 1;
+  for (auto it = chunks_.begin(); it != chunks_.end(); ++it, ++chunk_counter) {
+    int percent = chunk_counter * 100 / chunks_.size();
+    std::cout << "Chunk " << chunk_counter << "/" << chunks_.size() << " ("
+              << percent << "%)" << std::flush;
+    if (it->Completed) {
+      std::cout << " - passed" << std::endl;
+      continue;
+    }
+    auto start = chr::steady_clock::now();
+    bool res = conv.DoConvertation(input_file_, it->FileName, it->StartTime,
+        it->Interval, inarg, output_arguments_);
+    auto finish = chr::steady_clock::now();
+    auto interval =
+        chr::duration_cast<chr::milliseconds>(finish - start).count();
+    auto is = Microseconds2SecondsString(interval);
+    std::cout << " - complete (" << is << " s)";
+    if (!res) {
+      std::cout << " with error";
+    } else {
+      it->Completed = true;
+      if (!Save()) {
+        std::cout << " success, but saving error";
+      } else {
+        std::cout << " success";
+      }
+    }
+    std::cout << std::endl;
   }
+
+
   conv.DoConcatenation(list_file_, interim_video_file_);  // TODO check result
 
 
@@ -534,7 +553,7 @@ bool Task::Validate() {
 
   // Проверим существование отдельных файлов
   for (auto it = chunks_.begin(); it != chunks_.end(); ++it) {
-    if (fs::exists(it->FileName)) {
+    if (!fs::exists(it->FileName)) {
       it->Completed = false;
     }
   }
