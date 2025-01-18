@@ -233,6 +233,8 @@ bool Task::Run() {
 
   RunConcatenation();  // TODO echo
 
+  RunMerge();  // TODO echo, check returns, etc
+
   return true;  // TODO check return value
 }
 
@@ -615,6 +617,35 @@ bool Task::RunConcatenation() {
     std::cout << "failed ";
   } else {
     interim_video_file_complete_ = true;
+    res = Save();
+    if (!res) {
+      std::cout << " complete, but saving error ";
+    }
+
+    std::cout << " success ";
+  }
+  std::cout << "(" << is << " s)" << std::endl;
+  return res;
+}
+
+
+bool Task::RunMerge() {
+  std::cout << "Phase 4/4: Merge streams ... " << std::flush;
+  if (output_file_complete_) {
+    std::cout << "passed" << std::endl;
+    return true;
+  }
+  FFmpeg conv;
+  auto start = chr::steady_clock::now();
+  bool res = conv.MergeVideoAndData(
+      interim_video_file_, interim_data_file_, output_file_);
+  auto finish = chr::steady_clock::now();
+  auto interval = chr::duration_cast<chr::milliseconds>(finish - start).count();
+  auto is = Microseconds2SecondsString(interval);
+  if (!res) {
+    std::cout << "failed ";
+  } else {
+    output_file_complete_ = true;
     res = Save();
     if (!res) {
       std::cout << " complete, but saving error ";

@@ -253,9 +253,9 @@ bool FFmpeg::MergeVideoAndData(std::filesystem::path video_file,
         // Copy audio
         "-map", "1:a", "-c:a", "copy",
         // Copy subtitle
-        "-map", "1:s", "-c:s", "copy",
+        // TODO !!!! Enable subtitles "-map", "1:s", "-c:s", "copy",
         // Copy data
-        "-map", "1:d", "-c:d", "copy",
+        // TODO !!!! Enable data "-map", "1:d", "-c:d", "copy",
         // Destination
         output_file.string()};
     // clang-format on
