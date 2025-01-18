@@ -171,10 +171,14 @@ bool Task::Run() {
 
   FFmpeg conv;
   bool result = true;
+  auto inarg = input_arguments_;
+  inarg.push_back("-an");
+  inarg.push_back("-sn");
+  inarg.push_back("-dn");
   for (auto it = chunks_.begin(); it != chunks_.end(); ++it) {
     auto p1 = std::chrono::steady_clock::now();
     conv.DoConvertation(input_file_, it->FileName, it->StartTime, it->Interval,
-        input_arguments_, output_arguments_);  // TODO check result
+        inarg, output_arguments_);  // TODO check result
     auto p2 = std::chrono::steady_clock::now();
 
     size_t prc = (it->StartTime + it->Interval) * 100 / duration_;
@@ -184,7 +188,12 @@ bool Task::Run() {
         << std::chrono::duration_cast<std::chrono::seconds>(p2 - p1).count()
         << "s" << std::endl;
   }
-  conv.DoConcatenation(list_file_, output_file_);  // TODO check result
+  conv.DoConcatenation(list_file_, interim_video_file_);  // TODO check result
+
+  auto nonvideo = input_arguments_;
+  nonvideo.push_back("-vn");
+  conv.DoConvertation(input_file_, interim_data_file_, {}, {}, nonvideo,
+      output_arguments_);  // TODO check result
 
   return true;  // TODO check return value
 }

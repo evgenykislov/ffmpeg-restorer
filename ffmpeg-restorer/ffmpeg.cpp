@@ -199,12 +199,21 @@ bool FFmpeg::RequestKeyFrames(
 
 
 bool FFmpeg::DoConvertation(std::filesystem::path input_file,
-    std::filesystem::path output_file, size_t start_time, size_t interval,
+    std::filesystem::path output_file, std::optional<size_t> start_time,
+    std::optional<size_t> interval,
     const std::vector<std::string>& input_arguments,
     const std::vector<std::string>& output_arguments) {
   try {
-    std::vector<std::string> raw_args = {"-hide_banner", "-y", "-ss",
-        Duration2Str(start_time), "-t", Duration2Str(interval)};
+    std::vector<std::string> raw_args = {"-hide_banner", "-y"};
+    if (start_time && interval) {
+      raw_args.push_back("-ss");
+      raw_args.push_back(Duration2Str(start_time.value()));
+      raw_args.push_back("-t");
+      raw_args.push_back(Duration2Str(interval.value()));
+    } else {
+      assert(!start_time);
+      assert(!interval);
+    }
     raw_args.insert(std::end(raw_args), std::begin(input_arguments),
         std::end(input_arguments));
     raw_args.push_back("-i");
@@ -221,6 +230,41 @@ bool FFmpeg::DoConvertation(std::filesystem::path input_file,
       return false;
     }
 
+    return true;
+  } catch (std::exception& err) {
+    std::cerr << "Error: " << err.what() << std::endl;
+  }
+  return false;
+}
+
+bool FFmpeg::MergeVideoAndData(std::filesystem::path video_file,
+    std::filesystem::path data_file,
+    std::filesystem::__cxx11::path output_file) {
+  try {
+    // clang-format off
+    std::vector<std::string> raw_args = {"-hide_banner",
+        // Source #0 (video)
+        "-i", video_file.string(),
+        // Source #1 (audio, subtitle, data)
+        "-i", data_file.string(),
+        // Copy video
+        "-map", "0:v", "-c:v", "copy",
+        // Copy audio
+        "-map", "1:a", "-c:a", "copy",
+        // Copy subtitle
+        "-map", "1:s", "-c:s", "copy",
+        // Copy data
+        "-map", "1:d", "-c:d", "copy",
+        // Destination
+        output_file.string()};
+    // clang-format on
+
+    std::string output;
+    std::string errout;
+    if (!RunApplication("ffmpeg", raw_args, output, errout)) {
+      std::cout << "ERROR:" << std::endl << errout << std::endl;
+      return false;
+    }
     return true;
   } catch (std::exception& err) {
     std::cerr << "Error: " << err.what() << std::endl;
