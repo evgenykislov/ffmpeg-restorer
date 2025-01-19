@@ -55,6 +55,12 @@ class FFmpeg {
   bool DoConcatenation(
       std::filesystem::path list_file, std::filesystem::path output_file);
 
+  /*! Получить информацию о потоках в виде json-строки
+  \param file файл, о котором выдаётся информация
+  \return json-строка с информацией. В случае ошибки выдаётся пустая строка */
+  std::string RequestStreamInfo(const std::filesystem::path& file);
+
+
  private:
   FFmpeg(const FFmpeg&) = delete;
   FFmpeg(FFmpeg&&) = delete;

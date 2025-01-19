@@ -249,13 +249,13 @@ bool FFmpeg::MergeVideoAndData(std::filesystem::path video_file,
         // Source #1 (audio, subtitle, data)
         "-i", data_file.string(),
         // Copy video
-        "-map", "0:v", "-c:v", "copy",
+        "-map", "0:v?", "-c:v", "copy",
         // Copy audio
-        "-map", "1:a", "-c:a", "copy",
+        "-map", "1:a?", "-c:a", "copy",
         // Copy subtitle
-        // TODO !!!! Enable subtitles "-map", "1:s", "-c:s", "copy",
+        "-map", "1:s?", "-c:s", "copy",
         // Copy data
-        // TODO !!!! Enable data "-map", "1:d", "-c:d", "copy",
+        "-map", "1:d?", "-c:d", "copy",
         // Destination
         output_file.string()};
     // clang-format on
@@ -293,4 +293,22 @@ bool FFmpeg::DoConcatenation(
     std::cerr << "Error: " << err.what() << std::endl;
   }
   return false;
+}
+
+std::string FFmpeg::RequestStreamInfo(const std::filesystem::path& file) {
+  try {
+    std::vector<std::string> raw_args = {"-v", "quiet", "-print_format", "json",
+        "-show_streams", file.string()};
+    std::string output;
+    std::string errout;
+    if (!RunApplication("ffprobe", raw_args, output, errout)) {
+      std::cout << "ERROR:" << std::endl << errout << std::endl;
+      return {};
+    }
+
+    return output;
+  } catch (std::exception& err) {
+    std::cerr << "Error: " << err.what() << std::endl;
+  }
+  return {};
 }
