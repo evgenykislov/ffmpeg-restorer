@@ -632,7 +632,7 @@ bool Task::RunConcatenation() {
 bool Task::RunMerge() {
   std::cout << "Phase 4/4: Merge streams ... " << std::flush;
   if (output_file_complete_) {
-    std::cout << "passed" << std::endl;
+    std::cout << "skip" << std::endl;
     return true;
   }
   FFmpeg conv;
