@@ -70,6 +70,8 @@ class Task {
   bool interim_video_file_complete_;
   std::filesystem::path interim_data_file_;
   bool interim_data_file_complete_;
+  bool interim_data_file_empty_;  // Признак, что промежуточный файл с данными
+                                  // будет отсутствовать (пустой)
   size_t duration_;
   std::vector<std::string> input_arguments_;  //!< Аргументы конвертации
   std::vector<std::string> output_arguments_;  //!< Аргументы конвертации
@@ -84,7 +86,8 @@ class Task {
 
   /*! Разбить конвертацию на кусочки
   TODO Описание */
-  bool GenerateChunks(const std::filesystem::path& task_path);
+  bool GenerateChunks(const std::filesystem::path& task_path,
+      const std::filesystem::path& chunk_ext);
 
   /*! Сгенерировать файл-список фрагментов для последующего объединения */
   bool GenerateListFile();

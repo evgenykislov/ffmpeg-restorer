@@ -11,6 +11,12 @@ class FFmpeg {
   FFmpeg();
   virtual ~FFmpeg();
 
+  enum ProcessResult {
+    kProcessError,  // Ошибка выполнения команды
+    kProcessEmpty,  // Результат команды - пустой файл (нет стримов)
+    kProcessSuccess  // Команда выполнилась успешно
+  };
+
   /*! Запросить длительность медиафайла
   \param fname полный путь к файлу
   \param duration_mcs возвращаемая длительность в микросекундах
@@ -27,14 +33,16 @@ class FFmpeg {
 
   /*! Выполнить конвертацию фрагмента в отдельный файл. Если выходной файл
   существует, то он будет перезаписан (предполагается, что был ранее сбой в
-  конвертации и получился битый файл). \param input_file имя исходного файл
+  конвертации и получился битый файл). Функция производит детекцию пустого
+  результата (выходной файл не содержит ни одного стрима)
+  \param input_file имя исходного файл
   \param output_file имя выходного файла
   \param начало фрагмента для конвертации, в микросекундах
   \param длительность фрагмента для конвертации, в микросекундах
   \param input_arguments аргументы конвертации для входного файла ffmpeg
   \param arguments аргументы конвертации для выходного файла ffmpeg
   \return признак успешно сделанной конвертации */
-  bool DoConvertation(std::filesystem::path input_file,
+  ProcessResult DoConvertation(std::filesystem::path input_file,
       std::filesystem::path output_file, std::optional<size_t> start_time,
       std::optional<size_t> interval,
       const std::vector<std::string>& input_arguments,
@@ -71,6 +79,11 @@ class FFmpeg {
 
   bool ParseKeyFrames(
       const std::string& value, std::vector<size_t>& key_frames);
+
+  /*! Попытаться по описанию ошибки детектировать случай пустого выходного файла
+  \param error_description описание ошибки
+  \return признак, что в описании ошибки содержится указание на пустой выходной файл */
+  bool DetectEmptyOutput(const std::string& error_description);
 };
 
 #endif

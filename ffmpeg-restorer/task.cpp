@@ -35,6 +35,7 @@ Task::Task(): is_created_(false) {
   output_file_complete_ = false;
   interim_video_file_complete_ = false;
   interim_data_file_complete_ = false;
+  interim_data_file_empty_ = false;
 }
 
 Task::Task(const Task& arg) { Copy(*this, arg); }
@@ -73,6 +74,7 @@ bool Task::CreateFromArguments(int argc, char** argv) {
       throw std::invalid_argument("a few arguments for convertation");
     }
     output_file_ = argv[argc - 1];
+    auto out_ext = output_file_.extension();
     bool outarg = false;
     for (int i = 0; i < argc - 1; ++i) {
       std::string v = argv[i];
@@ -106,10 +108,12 @@ bool Task::CreateFromArguments(int argc, char** argv) {
 
     task_cfg_path_ = task_path / kTaskCfgFile;
     interim_video_file_ = task_path / kInterimVideoFile;
+    interim_video_file_.replace_extension(out_ext);
     interim_data_file_ = task_path / kInterimDataFile;
+    interim_data_file_.replace_extension(out_ext);
     list_file_ = task_path / kInterimListFile;
 
-    if (!GenerateChunks(task_path)) {
+    if (!GenerateChunks(task_path, out_ext)) {
       throw std::invalid_argument("failed to parse input file");
     }
 
@@ -211,7 +215,7 @@ bool Task::Run() {
     }
     auto start = chr::steady_clock::now();
     bool res = conv.DoConvertation(input_file_, it->FileName, it->StartTime,
-        it->Interval, inarg, output_arguments_);
+        it->Interval, inarg, output_arguments_);  // TODO PROCESS !!!
     auto finish = chr::steady_clock::now();
     auto interval =
         chr::duration_cast<chr::milliseconds>(finish - start).count();
@@ -302,6 +306,7 @@ void Task::Swap(Task& arg1, Task& arg2) noexcept {
       arg1.interim_video_file_complete_, arg2.interim_video_file_complete_);
   std::swap(arg1.interim_data_file_, arg2.interim_data_file_);
   std::swap(arg1.interim_data_file_complete_, arg2.interim_data_file_complete_);
+  std::swap(arg1.interim_data_file_empty_, arg2.interim_data_file_empty_);
 }
 
 
@@ -321,10 +326,12 @@ void Task::Copy(Task& arg_to, const Task& arg_from) {
   arg_to.interim_video_file_complete_ = arg_from.interim_video_file_complete_;
   arg_to.interim_data_file_ = arg_from.interim_data_file_;
   arg_to.interim_data_file_complete_ = arg_from.interim_data_file_complete_;
+  arg_to.interim_data_file_empty_ = arg_from.interim_data_file_empty_;
 }
 
 
-bool Task::GenerateChunks(const std::filesystem::path& task_path) {
+bool Task::GenerateChunks(const std::filesystem::path& task_path,
+    const std::filesystem::path& chunk_ext) {
   FFmpeg fm;
 
   if (!fm.RequestDuration(input_file_, duration_)) {
@@ -344,7 +351,8 @@ bool Task::GenerateChunks(const std::filesystem::path& task_path) {
 
     std::filesystem::path ch_fname;
     std::stringstream suffix;
-    suffix << "chunk_" << std::setw(6) << std::setfill('0') << i << ".mkv";
+    suffix << "chunk_" << std::setw(6) << std::setfill('0') << i
+           << chunk_ext.string();
 
     Chunk ch;
     ch.FileName = task_path / suffix.str();
@@ -427,7 +435,8 @@ bool Task::Save() {
     // Стандартная форматка
     json j = {{"input", nullptr}, {"output", {{"0", nullptr}}},
         {"interim", {{"video", {{"name", nullptr}, {"complete", false}}},
-                        {"data", {{"name", nullptr}, {"complete", false}}},
+                        {"data", {{"name", nullptr}, {"complete", false},
+                                     {"empty", nullptr}}},
                         {"list", {{"name", nullptr}}}}},
         {"chunks", nullptr}};
 
@@ -439,6 +448,7 @@ bool Task::Save() {
     j["output"]["0"]["complete"] = output_file_complete_;
     j["interim"]["data"]["name"] = interim_data_file_.u8string();
     j["interim"]["data"]["complete"] = interim_data_file_complete_;
+    j["interim"]["data"]["empty"] = interim_data_file_empty_;
     j["interim"]["video"]["name"] = interim_video_file_.u8string();
     j["interim"]["video"]["complete"] = interim_video_file_complete_;
     j["interim"]["list"]["name"] = list_file_.u8string();
@@ -489,6 +499,7 @@ bool Task::Load(const std::filesystem::path& task_path_cfg) {
     interim_data_file_ = strv;
     interim_data_file_complete_ =
         data["interim"]["data"].value("complete", false);
+    interim_data_file_empty_ = data["interim"]["data"].value("empty", false);
     strv = data["interim"]["video"].value("name", "");
     interim_video_file_ = strv;
     interim_video_file_complete_ =
@@ -547,7 +558,10 @@ bool Task::Validate() {
   if (interim_data_file_.empty()) {
     return false;
   }
-  if (!fs::exists(interim_data_file_)) {
+  if (interim_data_file_empty_) {
+    assert(interim_data_file_complete_);
+    interim_data_file_complete_ = true;
+  } else if (!fs::exists(interim_data_file_)) {
     interim_data_file_complete_ = false;
   }
   if (interim_video_file_.empty()) {
@@ -569,26 +583,30 @@ bool Task::Validate() {
 
 
 bool Task::RunSplit() {
-  std::cout << "Phase 1/4: Extract non-video streams" << std::endl;
+  std::cout << "Phase 1/4: Extract non-video streams " << std::flush;
   if (interim_data_file_complete_) {
-    std::cout << "-- passed" << std::endl;
+    std::cout << "-- skip" << std::endl;
     return true;
   }
   auto nonvideo = input_arguments_;
   nonvideo.push_back("-vn");
   FFmpeg conv;
   auto start = chr::steady_clock::now();
-  bool res = conv.DoConvertation(
-      input_file_, interim_data_file_, {}, {}, nonvideo, output_arguments_);
+  auto res = conv.DoConvertation(input_file_, interim_data_file_, {}, {},
+      nonvideo, output_arguments_);  // TODO PROCESS !!!
   auto finish = chr::steady_clock::now();
   auto interval = chr::duration_cast<chr::milliseconds>(finish - start).count();
   auto is = Microseconds2SecondsString(interval);
 
-  if (!res) {
+  if (res == FFmpeg::kProcessError) {
     std::cout << "-- complete with error (" << is << " s)" << std::endl;
     return false;
   } else {
     interim_data_file_complete_ = true;
+    if (res == FFmpeg::kProcessEmpty) {
+      interim_data_file_empty_ = true;
+      std::cout << " (empty output) ";
+    }
     if (!Save()) {
       std::cout << "-- complete, but saving error (" << is << " s)"
                 << std::endl;
@@ -635,6 +653,24 @@ bool Task::RunMerge() {
     std::cout << "skip" << std::endl;
     return true;
   }
+
+  if (interim_data_file_empty_) {
+    // Простое копирование файла с видео
+    std::cout << " (copying) ";
+    if (fs::copy_file(interim_video_file_, output_file_,
+            fs::copy_options::overwrite_existing)) {
+      output_file_complete_ = true;
+      if (Save()) {
+        std::cout << " success" << std::endl;
+        return true;
+      }
+      std::cout << " complete, but saving error " << std::endl;
+    } else {
+      std::cout << " failed" << std::endl;
+    }
+    return false;
+  }
+
   FFmpeg conv;
   auto start = chr::steady_clock::now();
   bool res = conv.MergeVideoAndData(

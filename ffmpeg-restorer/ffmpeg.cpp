@@ -144,6 +144,25 @@ bool FFmpeg::ParseKeyFrames(
   return false;
 }
 
+bool FFmpeg::DetectEmptyOutput(const std::string& error_description) {
+  std::string kFirstPart = "Output file";
+  std::string kSecondPart = "does not contain any stream";
+
+  std::stringstream err(error_description);
+  std::string line;
+  while (std::getline(err, line)) {
+    if (line.find(kFirstPart) == line.npos) {
+      continue;
+    }
+    if (line.find(kSecondPart) == line.npos) {
+      continue;
+    }
+    return true;
+  }
+
+  return false;
+}
+
 FFmpeg::~FFmpeg() {}
 
 bool FFmpeg::RequestDuration(
@@ -200,7 +219,7 @@ bool FFmpeg::RequestKeyFrames(
 }
 
 
-bool FFmpeg::DoConvertation(std::filesystem::path input_file,
+FFmpeg::ProcessResult FFmpeg::DoConvertation(std::filesystem::path input_file,
     std::filesystem::path output_file, std::optional<size_t> start_time,
     std::optional<size_t> interval,
     const std::vector<std::string>& input_arguments,
@@ -227,15 +246,20 @@ bool FFmpeg::DoConvertation(std::filesystem::path input_file,
     std::string output;
     std::string errout;
     if (!RunApplication("ffmpeg", raw_args, output, errout)) {
+      // Конвертация выполнилась с ошибкой. Но возможен вариант пустого файла
+      if (DetectEmptyOutput(errout)) {
+        return kProcessEmpty;
+      }
+
       // std::cout << "ERROR:" << std::endl << errout << std::endl;
-      return false;
+      return kProcessError;
     }
 
-    return true;
+    return kProcessSuccess;
   } catch (std::exception& err) {
     std::cerr << "Error: " << err.what() << std::endl;
   }
-  return false;
+  return kProcessError;
 }
 
 bool FFmpeg::MergeVideoAndData(std::filesystem::path video_file,
@@ -297,8 +321,8 @@ bool FFmpeg::DoConcatenation(
 
 std::string FFmpeg::RequestStreamInfo(const std::filesystem::path& file) {
   try {
-    std::vector<std::string> raw_args = {"-v", "quiet", "-print_format", "json",
-        "-show_streams", file.string()};
+    std::vector<std::string> raw_args = {
+        "-v", "quiet", "-print_format", "json", "-show_streams", file.string()};
     std::string output;
     std::string errout;
     if (!RunApplication("ffprobe", raw_args, output, errout)) {
