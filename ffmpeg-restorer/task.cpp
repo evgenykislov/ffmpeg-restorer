@@ -96,6 +96,8 @@ bool Task::CreateFromArguments(int argc, char** argv) {
       }
     }
 
+    input_file_ = fs::absolute(input_file_);
+    output_file_ = fs::absolute(output_file_);
     if (input_file_.empty() || output_file_.empty()) {
       throw std::invalid_argument("input/output file isn't specified");
     }
@@ -106,6 +108,7 @@ bool Task::CreateFromArguments(int argc, char** argv) {
       throw std::runtime_error("can't create task storage");
     }
 
+    assert(task_path.is_absolute());
     task_cfg_path_ = task_path / kTaskCfgFile;
     interim_video_file_ = task_path / kInterimVideoFile;
     interim_video_file_.replace_extension(out_ext);
@@ -137,7 +140,7 @@ bool Task::CreateFromArguments(int argc, char** argv) {
 bool Task::CreateFromID(size_t id) {
   Clear();
   try {
-    fs::path hd = HomeDirLibrary::GetHomeDir();
+    fs::path hd = fs::absolute(HomeDirLibrary::GetHomeDir());
     if (hd.empty()) {
       std::cerr << "ERROR: There isn't home directory with user files"
                 << std::endl;
@@ -169,7 +172,7 @@ bool Task::CreateFromID(size_t id) {
 
 bool Task::DeleteTask(size_t id) {
   try {
-    fs::path hd = HomeDirLibrary::GetHomeDir();
+    fs::path hd = fs::absolute(HomeDirLibrary::GetHomeDir());
     if (hd.empty()) {
       std::cerr << "ERROR: There isn't home directory with user files"
                 << std::endl;
@@ -255,7 +258,7 @@ void Task::Clear() {
 std::vector<size_t> Task::GetTasks() {
   try {
     std::vector<size_t> result;
-    fs::path hd = HomeDirLibrary::GetHomeDir();
+    fs::path hd = fs::absolute(HomeDirLibrary::GetHomeDir());
     if (hd.empty()) {
       return result;
     }
@@ -387,7 +390,7 @@ bool Task::GenerateListFile() {
 
 bool Task::CreateNewTaskStorage(size_t& id, std::filesystem::path& task_path) {
   try {
-    fs::path hd = HomeDirLibrary::GetHomeDir();
+    fs::path hd = fs::absolute(HomeDirLibrary::GetHomeDir());
     if (hd.empty()) {
       std::cerr << "ERROR: There isn't home directory to store user files"
                 << std::endl;
@@ -432,6 +435,9 @@ bool Task::CreateNewTaskStorage(size_t& id, std::filesystem::path& task_path) {
 
 bool Task::Save() {
   try {
+    assert(input_file_.is_absolute());
+    assert(output_file_.is_absolute());
+
     // Стандартная форматка
     json j = {{"input", nullptr}, {"output", {{"0", nullptr}}},
         {"interim", {{"video", {{"name", nullptr}, {"complete", false}}},
