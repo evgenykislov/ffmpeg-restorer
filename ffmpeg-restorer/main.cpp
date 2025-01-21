@@ -13,9 +13,10 @@ const std::string kCommandAdd = "add";
 // clang-format off
 
 const char kHelpMessage[] =
-    "ffmpeg-restorer is utility for media files convertation with progress\n"
+    "ffmpegrr is utility for media files convertation with saving progress and\n"
+    "restoration it after crash or stop\n"
     "Usage:\n"
-    "  ffmpeg-restorer [command [arguments]]\n"
+    "  ffmpegrr [command [arguments]]\n"
     "Commands:\n"
     "  add [ffmpeg arguments] - add new task for convertation\n"
     "  help, --help - print help\n"
@@ -23,7 +24,11 @@ const char kHelpMessage[] =
     "Run without command resume tasks, added earlier\n"
     "Examples:\n"
     "Add task for video stream copy:\n"
-    "  ffmpeg-restorer add -i input.mp4 -cv copy output.mp4";
+    "  ffmpegrr add -i input.mp4 -cv copy output.mp4";
+
+const char kTitleMessage[] =
+    "ffmpegrr utility for convertation with progress restoration\n"
+    "For information run: ffmpegrr --help\n";
 
 // clang-format on
 
@@ -79,6 +84,8 @@ int main(int argc, char** argv) {
     return 0;
   }
 
+  // Команда не задана. Делаем обычную конвертацию
+  std::cout << kTitleMessage << std::endl;
   ProcessAllTasks();
   return 0;
 }
