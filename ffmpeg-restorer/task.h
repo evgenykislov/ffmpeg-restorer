@@ -46,6 +46,11 @@ class Task {
   \return массив с идентификаторами задач */
   static std::vector<size_t> GetTasks();
 
+
+  /*! Выдать признак что задача завершена
+  \return признак завершенной задачи */
+  bool TaskCompleted();
+
  private:
   /*! Описание одного кусочка конвертации */
   struct Chunk {

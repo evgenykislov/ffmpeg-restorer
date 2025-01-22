@@ -291,6 +291,8 @@ std::vector<size_t> Task::GetTasks() {
   return {};
 }
 
+bool Task::TaskCompleted() { return is_created_ && output_file_complete_; }
+
 
 void Task::Swap(Task& arg1, Task& arg2) noexcept {
   std::swap(arg1.is_created_, arg2.is_created_);
