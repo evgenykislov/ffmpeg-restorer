@@ -267,7 +267,7 @@ bool FFmpeg::MergeVideoAndData(std::filesystem::path video_file,
     std::filesystem::__cxx11::path output_file) {
   try {
     // clang-format off
-    std::vector<std::string> raw_args = {"-hide_banner",
+    std::vector<std::string> raw_args = {"-hide_banner", "-y",
         // Source #0 (video)
         "-i", video_file.string(),
         // Source #1 (audio, subtitle, data)
