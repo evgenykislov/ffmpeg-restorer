@@ -17,11 +17,19 @@ namespace fs = std::filesystem;
 namespace chr = std::chrono;
 using json = nlohmann::json;
 
-const std::string kTaskFolder = ".ffmpeg-restorer";
+const std::string kTaskFolder = ".ffmpegrr";
 const std::string kTaskCfgFile = "task.cfg";
 const std::string kInterimVideoFile = "video.mkv";
 const std::string kInterimDataFile = "data.mkv";
 const std::string kInterimListFile = "list.txt";
+
+const size_t kDefaultChunkSize = 60000000ULL;
+const size_t kMinimalChunkSize = 20000000ULL;
+const size_t kSearchInterval = 100000ULL;  // 2 секунды
+static_assert(kSearchInterval < (kMinimalChunkSize / 4),
+    "Seach interval should be more smaller, than minimal chunk size");
+static_assert(kMinimalChunkSize < kDefaultChunkSize,
+    "Minimal size of chunk should be less than default size");
 
 std::string Microseconds2SecondsString(int value_ms) {
   std::stringstream s;
@@ -343,31 +351,57 @@ bool Task::GenerateChunks(const std::filesystem::path& task_path,
     return false;
   }
 
-  chunks_.clear();
-  size_t pos = 0;
+  // Найдём предпочтительные границы фрагментов
+  std::vector<size_t> time_marks;
+  time_marks.push_back(0);
+  size_t pos = kDefaultChunkSize;
+  while (pos < duration_) {
+    size_t ord_frame;
+    size_t key_frame;
+    if (fm.RequestFrames(
+            input_file_, pos, kSearchInterval, ord_frame, key_frame)) {
+      if (key_frame != 0) {
+        pos = key_frame;
+      } else if (ord_frame != 0) {
+        pos = ord_frame;
+      }
+    }  // else pos остаётся невыровненной
 
-  for (int i = 0; pos < duration_; ++i) {
-    // TODO refactor dumb algorithm
-    size_t tail = pos + 60000000ULL;
+    time_marks.push_back(pos);
+    pos += kDefaultChunkSize;
+  }
+  time_marks.push_back(duration_);
 
-    if (tail > duration_) {
-      tail = duration_;
+  // Проредим фрагменты, чтобы убрать совсем короткие
+  assert(time_marks.size() >= 2);
+  for (int i = time_marks.size() - 2; i > 0; --i) {
+    assert(i >= 0);
+    assert((i + 1) < time_marks.size());
+    if ((time_marks[i + 1] - time_marks[i]) < kMinimalChunkSize) {
+      time_marks.erase(time_marks.begin() + i);
+      continue;
     }
+  }
+  if ((time_marks.size() >= 3) &&
+      ((time_marks[1] - time_marks[0]) < kMinimalChunkSize)) {
+    time_marks.erase(time_marks.begin() + 1);
+  }
+  assert(time_marks.size() >= 2);
+  assert(time_marks[0] == 0);
+  assert(time_marks.back() == duration_);
 
+  chunks_.clear();
+  for (int i = 0; i < time_marks.size() - 1; ++i) {
     std::filesystem::path ch_fname;
     std::stringstream suffix;
     suffix << "chunk_" << std::setw(6) << std::setfill('0') << i
            << chunk_ext.string();
-
     Chunk ch;
     ch.FileName = task_path / suffix.str();
-    ch.StartTime = pos;
-    ch.Interval = tail - pos;
+    ch.StartTime = time_marks[i];
+    ch.Interval = time_marks[i + 1] - time_marks[i];
     ch.Completed = false;
-
     chunks_.push_back(ch);
-
-    pos = tail;
   }
 
   return true;

@@ -24,12 +24,16 @@ class FFmpeg {
   bool RequestDuration(
       const std::filesystem::path& fname, size_t& duration_mcs);
 
-  /*! Запросить список позиций ключевых кадров
-  \param fname полный путь к файлу в нативной кодировке
-  \param key_frames массив позиций (будет очищен перед заполнением)
+  /*! Запросить фреймы во временном диапазоне: первый обычный и первый ключевой.
+  Вернуть время через аргументы в микросекундах. Если кадра требуемого типа нет,
+  то возвращается значение 0. Время старта поиска АБСОЛЮТНО неточно, и может
+  отличаться от параметра search_start на несколько секунд
+  \param fname полный путь к файлу
+  \param search_start, search_interval время и длительность интервала, в котором осуществляется поиск
+  \param ordinary_frame, key_frame время любого кадра и время ключевого кадра
   \return признак успешности выполнения запроса */
-  bool RequestKeyFrames(
-      const std::string& fname, std::vector<size_t>& key_frames);
+  bool RequestFrames(const std::filesystem::path& fname, size_t search_start,
+      size_t search_interval, size_t& ordinary_frame, size_t& key_frame);
 
   /*! Выполнить конвертацию фрагмента в отдельный файл. Если выходной файл
   существует, то он будет перезаписан (предполагается, что был ранее сбой в
@@ -77,8 +81,6 @@ class FFmpeg {
 
   bool ParseDuration(const std::string& value, size_t& duration_mcs);
 
-  bool ParseKeyFrames(
-      const std::string& value, std::vector<size_t>& key_frames);
 
   /*! Попытаться по описанию ошибки детектировать случай пустого выходного файла
   \param error_description описание ошибки

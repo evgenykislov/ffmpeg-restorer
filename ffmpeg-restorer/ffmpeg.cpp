@@ -138,11 +138,6 @@ bool FFmpeg::ParseDuration(const std::string& value, size_t& duration_mcs) {
   return false;
 }
 
-bool FFmpeg::ParseKeyFrames(
-    const std::string& value, std::vector<size_t>& key_frames) {
-  assert(false);  // TODO Not implemented
-  return false;
-}
 
 bool FFmpeg::DetectEmptyOutput(const std::string& error_description) {
   std::string kFirstPart = "Output file";
@@ -190,12 +185,19 @@ bool FFmpeg::RequestDuration(
   return false;
 }
 
-bool FFmpeg::RequestKeyFrames(
-    const std::string& fname, std::vector<size_t>& key_frames) {
+bool FFmpeg::RequestFrames(const std::filesystem::path& fname,
+    size_t search_start, size_t search_interval, size_t& ordinary_frame,
+    size_t& key_frame) {
+  ordinary_frame = 0;
+  key_frame = 0;
   try {
-    std::vector<std::string> arguments = {"-select_streams", "v", "-skip_frame",
-        "nokey", "-show_frames", "-show_entries",
-        "frame=pkt_pts_time,pict_type", "-sexagesimal"};
+    std::stringstream intarg;
+    intarg << search_start / 1000000 << "." << std::setw(6) << std::setfill('0')
+           << search_start % 1000000 << "%+" << search_interval / 1000000 << "."
+           << std::setw(6) << std::setfill('0') << search_interval % 1000000;
+    std::vector<std::string> arguments = {"-select_streams", "v",
+        "-show_frames", "-show_entries", "frame=pkt_pts_time,pict_type",
+        "-sexagesimal", "-read_intervals", intarg.str(), "-of", "csv"};
     arguments.push_back(fname);
 
     std::string output;
@@ -204,13 +206,37 @@ bool FFmpeg::RequestKeyFrames(
       return false;
     }
 
-    std::cout << "Receive information about key frames with size "
-              << output.size() << " symbols" << std::endl;
-
-    //    if (!ParseDuration(output, duration_mcs)) {
-    //      std::cerr << "ffprobe returns unknown format value" << std::endl;
-    //      return false;
-    //    }
+    std::stringstream os(output);
+    std::string line;
+    while (std::getline(os, line)) {
+      const std::string kFrameField = "frame";
+      const std::string kKeyType = "I";
+      auto c1 = line.find(',');
+      if (c1 == line.npos) {
+        continue;
+      }
+      auto c2 = line.find(',', c1 + 1);
+      if (c2 == line.npos) {
+        continue;
+      }
+      if (line.substr(0, c1) != kFrameField) {
+        continue;
+      }
+      auto dur = line.substr(c1 + 1, c2 - c1 - 1);
+      size_t mark;
+      if (!ParseDuration(dur, mark)) {
+        continue;
+      }
+      if (ordinary_frame == 0) {
+        ordinary_frame = mark;
+      }
+      if (key_frame == 0 && line.substr(c2 + 1) == kKeyType) {
+        key_frame = mark;
+      }
+      if (ordinary_frame != 0 && key_frame != 0) {
+        break;
+      }
+    }
     return true;
   } catch (std::exception& err) {
     std::cerr << "Error: " << err.what() << std::endl;
