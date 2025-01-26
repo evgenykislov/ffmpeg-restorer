@@ -26,7 +26,7 @@ bool Str2Duration(const std::string& str, size_t& value) {
     return false;
   }
   unsigned long long hour, minute, second, micro;
-  auto res = std::sscanf(
+  auto res = sscanf_s(
       str.c_str(), "%llu:%llu:%llu.%llu", &hour, &minute, &second, &micro);
   if (res != 4) {
     return false;
@@ -42,7 +42,7 @@ std::string Duration2Str(size_t value) {
   size_t whole_sec = value / 1000000ULL;
   size_t microsec = value % 1000000ULL;
 
-  unsigned int hour = whole_sec / 3600;
+  unsigned int hour = static_cast<unsigned int>(whole_sec / 3600);
   unsigned int tail = whole_sec % 3600;
   unsigned int minutes = tail / 60;
   unsigned int seconds = tail % 60;
@@ -198,7 +198,7 @@ bool FFmpeg::RequestFrames(const std::filesystem::path& fname,
     std::vector<std::string> arguments = {"-select_streams", "v",
         "-show_frames", "-show_entries", "frame=pkt_pts_time,pict_type",
         "-sexagesimal", "-read_intervals", intarg.str(), "-of", "csv"};
-    arguments.push_back(fname);
+    arguments.push_back(fname.string());
 
     std::string output;
     std::string errout;
@@ -290,7 +290,7 @@ FFmpeg::ProcessResult FFmpeg::DoConvertation(std::filesystem::path input_file,
 
 bool FFmpeg::MergeVideoAndData(std::filesystem::path video_file,
     std::filesystem::path data_file,
-    std::filesystem::__cxx11::path output_file) {
+    std::filesystem::path output_file) {
   try {
     // clang-format off
     std::vector<std::string> raw_args = {"-hide_banner", "-y",
