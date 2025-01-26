@@ -26,7 +26,7 @@ bool Str2Duration(const std::string& str, size_t& value) {
     return false;
   }
   unsigned long long hour, minute, second, micro;
-  auto res = sscanf_s(
+  auto res = std::sscanf(
       str.c_str(), "%llu:%llu:%llu.%llu", &hour, &minute, &second, &micro);
   if (res != 4) {
     return false;
@@ -289,8 +289,7 @@ FFmpeg::ProcessResult FFmpeg::DoConvertation(std::filesystem::path input_file,
 }
 
 bool FFmpeg::MergeVideoAndData(std::filesystem::path video_file,
-    std::filesystem::path data_file,
-    std::filesystem::path output_file) {
+    std::filesystem::path data_file, std::filesystem::path output_file) {
   try {
     // clang-format off
     std::vector<std::string> raw_args = {"-hide_banner", "-y",
