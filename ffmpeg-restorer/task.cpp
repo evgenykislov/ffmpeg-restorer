@@ -31,7 +31,7 @@ static_assert(kSearchInterval < (kMinimalChunkSize / 4),
 static_assert(kMinimalChunkSize < kDefaultChunkSize,
     "Minimal size of chunk should be less than default size");
 
-std::string Microseconds2SecondsString(int value_ms) {
+std::string Microseconds2SecondsString(long long value_ms) {
   std::stringstream s;
   s << value_ms / 1000 << "." << std::setw(3) << std::setfill('0')
     << value_ms % 1000;
@@ -44,6 +44,7 @@ Task::Task(): is_created_(false) {
   interim_video_file_complete_ = false;
   interim_data_file_complete_ = false;
   interim_data_file_empty_ = false;
+  duration_ = 0;
 }
 
 Task::Task(const Task& arg) { Copy(*this, arg); }
@@ -217,7 +218,7 @@ bool Task::Run() {
   inarg.push_back("-dn");
   int chunk_counter = 1;
   for (auto it = chunks_.begin(); it != chunks_.end(); ++it, ++chunk_counter) {
-    int percent = chunk_counter * 100 / chunks_.size();
+    int percent = static_cast<int>(chunk_counter * 100 / chunks_.size());
     std::cout << "Chunk " << chunk_counter << "/" << chunks_.size() << " ("
               << percent << "%)" << std::flush;
     if (it->Completed) {
@@ -294,7 +295,7 @@ std::vector<size_t> Task::GetTasks() {
 
     std::sort(result.begin(), result.end());
     return result;
-  } catch (std::exception& err) {
+  } catch (std::exception&) {
   }
   return {};
 }
@@ -374,7 +375,7 @@ bool Task::GenerateChunks(const std::filesystem::path& task_path,
 
   // Проредим фрагменты, чтобы убрать совсем короткие
   assert(time_marks.size() >= 2);
-  for (int i = time_marks.size() - 2; i > 0; --i) {
+  for (int i = static_cast<int>(time_marks.size()) - 2; i > 0; --i) {
     assert(i >= 0);
     assert((i + 1) < time_marks.size());
     if ((time_marks[i + 1] - time_marks[i]) < kMinimalChunkSize) {
@@ -555,7 +556,6 @@ bool Task::Load(const std::filesystem::path& task_path_cfg) {
       auto j = el.value();
       Chunk ch;
       std::string strv;
-      size_t sizev;
       strv = j.value("name", "");
       ch.FileName = strv;
       strv = j.value("start", " ");
