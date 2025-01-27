@@ -15,8 +15,6 @@ const std::string kCommandRemoveAll = "removeall";
 // clang-format off
 
 const char kHelpMessage[] =
-    "ffmpegrr is utility for media files convertation with saving progress and\n"
-    "restoration it after crash or stop\n"
     "Usage:\n"
     "  ffmpegrr [command [arguments]]\n"
     "Commands:\n"
@@ -31,9 +29,12 @@ const char kHelpMessage[] =
     "Add task for video stream copy:\n"
     "  ffmpegrr add -i input.mp4 -cv copy output.mp4";
 
-const char kTitleMessage[] =
-    "ffmpegrr utility for convertation with progress restoration\n"
+const char kNoCommandTitleMessage[] =
+    "ffmpegrr utility for convertation with progress restoration. Evgeny Kislov, 2025\n"
     "For information run: ffmpegrr --help\n";
+
+const char kTitleMessage[] =
+    "ffmpegrr utility for convertation with progress restoration. Evgeny Kislov, 2025\n";
 
 // clang-format on
 
@@ -68,6 +69,7 @@ void ProcessAllTasks() {
 
 /*! Удалить все завершенные задачи */
 void CommandFlush() {
+  size_t amount = 0;
   auto tasks = Task::GetTasks();
 
   for (auto it = tasks.begin(); it != tasks.end(); ++it) {
@@ -80,7 +82,10 @@ void CommandFlush() {
     t.Clear();
 
     Task::DeleteTask(*it);
+    ++amount;
   }
+
+  std::cout << "Flushed " << amount << " tasks" << std::endl;
 }
 
 
@@ -91,11 +96,14 @@ void CommandRemoveAll() {
   for (auto it = tasks.begin(); it != tasks.end(); ++it) {
     Task::DeleteTask(*it);
   }
+
+  std::cout << "Removed " << tasks.size() << " tasks" << std::endl;
 }
 
 
 int main(int argc, char** argv) {
   if (argc > 1) {
+    std::cout << kTitleMessage << std::endl;
     std::string command = argv[1];
 
     if (command == kCommandAdd) {
@@ -106,6 +114,7 @@ int main(int argc, char** argv) {
           return 1;
         }
       }
+      std::cout << "Added new task" << std::endl;
       ProcessAllTasks();
     } else if (command == kCommandHelp1 || command == kCommandHelp2) {
       PrintHelp();
@@ -124,7 +133,7 @@ int main(int argc, char** argv) {
   }
 
   // Команда не задана. Делаем обычную конвертацию
-  std::cout << kTitleMessage << std::endl;
+  std::cout << kNoCommandTitleMessage << std::endl;
   ProcessAllTasks();
   return 0;
 }
