@@ -36,10 +36,10 @@ SOFTWARE.
 #include "home-dir.h"
 
 // --------------------------
-// Linux implementation
+// Linux and MacOS implementation
 // --------------------------
 
-#ifdef LINUX_PLATFORM
+#if defined(LINUX_PLATFORM) || defined(MACOS_PLATFORM)
 
 #include <string>
 
