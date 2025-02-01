@@ -19,21 +19,68 @@ bool Str2Duration(const std::string& str, size_t& value) {
   //  of 2 digits, and SS the number of seconds for a maximum of 2 digits. The m
   //  at the end expresses decimal value for SS.
 
-  // TODO check parts of seconds is not microseconds only
-  // TODO check time without hours
-
   if (str.empty()) {
     return false;
   }
-  unsigned long long hour, minute, second, micro;
-  auto res = std::sscanf(
-      str.c_str(), "%llu:%llu:%llu.%llu", &hour, &minute, &second, &micro);
-  if (res != 4) {
+
+  // Check if the time is negative
+  bool isNegative = false;
+  size_t startIdx = 0;
+  if (str[0] == '-') {
+    isNegative = true;
+    startIdx = 1;
+  }
+
+  // Split the string into hours, minutes, seconds, and fractional seconds
+  size_t colon1 = str.find(':', startIdx);
+  size_t colon2 = str.find(':', colon1 + 1);
+  size_t dot = str.find('.', startIdx);
+
+  // Extract hours, minutes, seconds, and fractional seconds
+  int64_t hours = 0, minutes = 0, seconds = 0, microseconds = 0;
+
+  // Case 1: No hours field (format is MM:SS[.m...])
+  if (colon1 != std::string::npos && colon2 == std::string::npos) {
+    minutes = std::stoll(str.substr(startIdx, colon1 - startIdx));
+    startIdx = colon1 + 1;
+  }
+  // Case 2: Hours field is present (format is HH:MM:SS[.m...])
+  else if (colon1 != std::string::npos && colon2 != std::string::npos) {
+    hours = std::stoll(str.substr(startIdx, colon1 - startIdx));
+    minutes = std::stoll(str.substr(colon1 + 1, colon2 - (colon1 + 1)));
+    startIdx = colon2 + 1;
+  } else {
+    // TODO Process simple format
     return false;
   }
-  value = hour * 3600 + minute * 60 + second;
-  value = value * 1000000 + micro;
-  return true;
+
+  // Extract seconds and fractional seconds
+  if (dot != std::string::npos) {
+    seconds = std::stoll(str.substr(startIdx, dot - startIdx));
+    std::string fractional = str.substr(dot + 1);
+    // Pad fractional seconds to 6 digits (microseconds)
+    fractional.resize(6, '0');
+    microseconds = std::stoll(fractional);
+  } else {
+    seconds = std::stoll(str.substr(startIdx));
+  }
+
+  // Validate minutes and seconds
+  if (minutes >= 60 || seconds >= 60) {
+    return false;
+  }
+
+  // Calculate total microseconds
+  int64_t totalMicroseconds = hours * 3600 * 1000000LL +
+                              minutes * 60 * 1000000LL + seconds * 1000000LL +
+                              microseconds;
+
+  // Apply negative sign if necessary
+  if (isNegative) {
+    totalMicroseconds = -totalMicroseconds;
+  }
+
+  return totalMicroseconds;
 }
 
 std::string Duration2Str(size_t value) {
