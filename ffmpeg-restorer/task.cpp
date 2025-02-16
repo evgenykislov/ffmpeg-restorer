@@ -111,11 +111,14 @@ bool Task::CreateFromArguments(int argc, char** argv) {
       throw std::invalid_argument("input/output file isn't specified");
     }
 
+    std::cout << "New task creation:" << std::endl;
     // Создаём хранилище для задачи
     fs::path task_path;
     if (!CreateNewTaskStorage(id_, task_path)) {
       throw std::runtime_error("can't create task storage");
     }
+    std::cout << "  Task: " << id_ << std::endl;
+    std::cout << "  Source: " << input_file_.string() << std::endl;
 
     assert(task_path.is_absolute());
     task_cfg_path_ = task_path / kTaskCfgFile;
@@ -125,9 +128,11 @@ bool Task::CreateFromArguments(int argc, char** argv) {
     interim_data_file_.replace_extension(out_ext);
     list_file_ = task_path / kInterimListFile;
 
+    std::cout << "    parsing ... " << std::flush;
     if (!GenerateChunks(task_path, out_ext)) {
       throw std::invalid_argument("failed to parse input file");
     }
+    std::cout << "ok" << std::endl;
 
     if (!GenerateListFile()) {
       throw std::invalid_argument("failed to save list file");
@@ -136,6 +141,7 @@ bool Task::CreateFromArguments(int argc, char** argv) {
     if (!Save()) {
       throw std::runtime_error("can't save task info");
     }
+    std::cout << "task created" << std::endl;
 
     is_created_ = true;
     return true;
