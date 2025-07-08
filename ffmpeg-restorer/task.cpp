@@ -130,6 +130,7 @@ bool Task::CreateFromArguments(int argc, char** argv) {
 
     std::cout << "    parsing ... " << std::flush;
     if (!GenerateChunks(task_path, out_ext)) {
+      std::cout << "failed" << std::endl;
       throw std::invalid_argument("failed to parse input file");
     }
     std::cout << "ok" << std::endl;
@@ -149,6 +150,10 @@ bool Task::CreateFromArguments(int argc, char** argv) {
   } catch (std::bad_alloc&) {
   }
   Clear();
+  if (!DeleteTask(id_)) {
+    std::cerr << "Can't delete broken task. The task will be deleted later"
+              << std::endl;
+  }
   return false;
 }
 

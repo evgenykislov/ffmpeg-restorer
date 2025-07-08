@@ -110,7 +110,8 @@ int main(int argc, char** argv) {
       {
         Task t;
         if (!t.CreateFromArguments(argc - 2, argv + 2)) {
-          std::cerr << "Can't create task from arguments" << std::endl;
+          std::cerr << "Failed to create new task from specified arguments"
+                    << std::endl;
           return 1;
         }
       }
