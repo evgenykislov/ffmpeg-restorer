@@ -1,6 +1,8 @@
 #include <algorithm>
 #include <cassert>
 #include <iostream>
+#include <set>
+#include <vector>
 
 #include "ffmpeg.h"
 #include "task.h"
@@ -52,16 +54,27 @@ void CommandList() {
 
 /*! Обработать все задачи по-очереди */
 void ProcessAllTasks() {
-  auto tasks = Task::GetTasks();
+  std::set<size_t> processed;  //!< Уже обработанные/удалённые задачи
+  bool runmore = true;
+  while (runmore) {
+    runmore = false;
+    auto tasks = Task::GetTasks();
 
-  for (auto it = tasks.begin(); it != tasks.end(); ++it) {
-    Task t;
-    if (t.CreateFromID(*it)) {
-      t.Run();
-    } else {
-      std::cerr << "Task " << *it << " is corrupted and will be removed"
-                << std::endl;
-      Task::DeleteTask(*it);
+    for (auto it = tasks.begin(); it != tasks.end(); ++it) {
+      if (processed.find(*it) != processed.end()) {
+        continue;
+      }
+
+      Task t;
+      if (t.CreateFromID(*it)) {
+        t.Run();
+      } else {
+        std::cerr << "Task " << *it << " is corrupted and will be removed"
+                  << std::endl;
+        Task::DeleteTask(*it);
+      }
+      processed.insert(*it);
+      runmore = true;
     }
   }
 }
