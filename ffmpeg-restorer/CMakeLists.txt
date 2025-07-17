@@ -9,6 +9,7 @@ set(SOURCE_FILES
   "main.cpp"
   "ffmpeg.cpp"
   "task.cpp"
+  "../libs/cpp-exclusive-lock-file/exclusive-lock-file.cpp"
   "../libs/home-dir/home-dir.cpp"
   )
 
@@ -16,6 +17,7 @@ set(SOURCE_FILES
 set(HEADER_FILES
   "ffmpeg.h"
   "task.h"
+  "../libs/cpp-exclusive-lock-file/exclusive-lock-file.h"
   "../libs/home-dir/home-dir.h"
   "../libs/json/json.hpp"
   )
