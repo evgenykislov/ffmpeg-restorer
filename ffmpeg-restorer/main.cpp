@@ -104,6 +104,8 @@ void ProcessAllTasks() {
       }
     } catch (std::runtime_error&) {
       // Уже есть запущенный процесс для обработки задач
+      std::cout << "Tasks are already being processed by another process"
+                << std::endl;
     }
   }
 }
