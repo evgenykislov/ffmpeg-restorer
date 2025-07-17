@@ -1,11 +1,18 @@
 #include <algorithm>
 #include <cassert>
+#include <filesystem>
 #include <iostream>
 #include <set>
 #include <vector>
 
-#include "ffmpeg.h"
+#include "exclusive-lock-file.h"
+#include "home-dir.h"
 #include "task.h"
+
+
+namespace fs = std::filesystem;
+
+const std::string kRunLockFile = "run.lock";
 
 const std::string kCommandHelp1 = "help";
 const std::string kCommandHelp2 = "--help";
@@ -40,7 +47,22 @@ const char kTitleMessage[] =
 
 // clang-format on
 
+std::string g_RunLockPath;
+
 void PrintHelp() { std::cout << kHelpMessage << std::endl; }
+
+bool InitLockFilePath() {
+  fs::path hd = fs::absolute(HomeDirLibrary::GetHomeDir());
+  if (hd.empty()) {
+    std::cerr << "ERROR: There isn't home directory with user files"
+              << std::endl;
+    return false;
+  }
+
+  auto lp = hd / kTaskFolder / kRunLockFile;
+  g_RunLockPath = lp;
+  return true;
+}
 
 
 /*! Выполнить команду list - выдать список задач */
@@ -57,24 +79,31 @@ void ProcessAllTasks() {
   std::set<size_t> processed;  //!< Уже обработанные/удалённые задачи
   bool runmore = true;
   while (runmore) {
-    runmore = false;
-    auto tasks = Task::GetTasks();
+    try {
+      runmore = false;
 
-    for (auto it = tasks.begin(); it != tasks.end(); ++it) {
-      if (processed.find(*it) != processed.end()) {
-        continue;
-      }
+      exclusive_lock_file fl(g_RunLockPath);
 
-      Task t;
-      if (t.CreateFromID(*it)) {
-        t.Run();
-      } else {
-        std::cerr << "Task " << *it << " is corrupted and will be removed"
-                  << std::endl;
-        Task::DeleteTask(*it);
+      auto tasks = Task::GetTasks();
+
+      for (auto it = tasks.begin(); it != tasks.end(); ++it) {
+        if (processed.find(*it) != processed.end()) {
+          continue;
+        }
+
+        Task t;
+        if (t.CreateFromID(*it)) {
+          t.Run();
+        } else {
+          std::cerr << "Task " << *it << " is corrupted and will be removed"
+                    << std::endl;
+          Task::DeleteTask(*it);
+        }
+        processed.insert(*it);
+        runmore = true;
       }
-      processed.insert(*it);
-      runmore = true;
+    } catch (std::runtime_error&) {
+      // Уже есть запущенный процесс для обработки задач
     }
   }
 }
@@ -115,6 +144,10 @@ void CommandRemoveAll() {
 
 
 int main(int argc, char** argv) {
+  if (!InitLockFilePath()) {
+    return 2;
+  }
+
   if (argc > 1) {
     std::cout << kTitleMessage << std::endl;
     std::string command = argv[1];

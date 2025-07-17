@@ -7,6 +7,9 @@
 #include <vector>
 
 
+const std::string kTaskFolder = ".ffmpegrr";
+
+
 class Task {
  public:
   Task();

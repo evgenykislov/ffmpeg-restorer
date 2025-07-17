@@ -24,6 +24,7 @@ set(HEADER_FILES
 
 add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES})
 
+target_include_directories(${PROJECT_NAME} PRIVATE "../libs/cpp-exclusive-lock-file")
 target_include_directories(${PROJECT_NAME} PRIVATE "../libs/reproc/reproc++/include")
 target_include_directories(${PROJECT_NAME} PRIVATE "../libs/home-dir")
 target_include_directories(${PROJECT_NAME} PRIVATE "../libs/json")

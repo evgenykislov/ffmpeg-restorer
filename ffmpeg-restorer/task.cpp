@@ -17,7 +17,6 @@ namespace fs = std::filesystem;
 namespace chr = std::chrono;
 using json = nlohmann::json;
 
-const std::string kTaskFolder = ".ffmpegrr";
 const std::string kTaskCfgFile = "task.cfg";
 const std::string kInterimVideoFile = "video.mkv";
 const std::string kInterimDataFile = "data.mkv";
