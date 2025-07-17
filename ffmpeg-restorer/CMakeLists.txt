@@ -9,6 +9,7 @@ set(SOURCE_FILES
   "main.cpp"
   "ffmpeg.cpp"
   "task.cpp"
+  "../libs/cpp-exclusive-lock-file/exclusive-lock-file.cpp"
   "../libs/home-dir/home-dir.cpp"
   )
 
@@ -16,12 +17,14 @@ set(SOURCE_FILES
 set(HEADER_FILES
   "ffmpeg.h"
   "task.h"
+  "../libs/cpp-exclusive-lock-file/exclusive-lock-file.h"
   "../libs/home-dir/home-dir.h"
   "../libs/json/json.hpp"
   )
 
 add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES})
 
+target_include_directories(${PROJECT_NAME} PRIVATE "../libs/cpp-exclusive-lock-file")
 target_include_directories(${PROJECT_NAME} PRIVATE "../libs/reproc/reproc++/include")
 target_include_directories(${PROJECT_NAME} PRIVATE "../libs/home-dir")
 target_include_directories(${PROJECT_NAME} PRIVATE "../libs/json")

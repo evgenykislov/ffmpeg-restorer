@@ -1,9 +1,18 @@
 #include <algorithm>
 #include <cassert>
+#include <filesystem>
 #include <iostream>
+#include <set>
+#include <vector>
 
-#include "ffmpeg.h"
+#include "exclusive-lock-file.h"
+#include "home-dir.h"
 #include "task.h"
+
+
+namespace fs = std::filesystem;
+
+const std::string kRunLockFile = "run.lock";
 
 const std::string kCommandHelp1 = "help";
 const std::string kCommandHelp2 = "--help";
@@ -38,7 +47,22 @@ const char kTitleMessage[] =
 
 // clang-format on
 
+std::string g_RunLockPath;
+
 void PrintHelp() { std::cout << kHelpMessage << std::endl; }
+
+bool InitLockFilePath() {
+  fs::path hd = fs::absolute(HomeDirLibrary::GetHomeDir());
+  if (hd.empty()) {
+    std::cerr << "ERROR: There isn't home directory with user files"
+              << std::endl;
+    return false;
+  }
+
+  auto lp = hd / kTaskFolder / kRunLockFile;
+  g_RunLockPath = lp;
+  return true;
+}
 
 
 /*! Выполнить команду list - выдать список задач */
@@ -52,16 +76,36 @@ void CommandList() {
 
 /*! Обработать все задачи по-очереди */
 void ProcessAllTasks() {
-  auto tasks = Task::GetTasks();
+  std::set<size_t> processed;  //!< Уже обработанные/удалённые задачи
+  bool runmore = true;
+  while (runmore) {
+    try {
+      runmore = false;
 
-  for (auto it = tasks.begin(); it != tasks.end(); ++it) {
-    Task t;
-    if (t.CreateFromID(*it)) {
-      t.Run();
-    } else {
-      std::cerr << "Task " << *it << " is corrupted and will be removed"
+      exclusive_lock_file fl(g_RunLockPath);
+
+      auto tasks = Task::GetTasks();
+
+      for (auto it = tasks.begin(); it != tasks.end(); ++it) {
+        if (processed.find(*it) != processed.end()) {
+          continue;
+        }
+
+        Task t;
+        if (t.CreateFromID(*it)) {
+          t.Run();
+        } else {
+          std::cerr << "Task " << *it << " is corrupted and will be removed"
+                    << std::endl;
+          Task::DeleteTask(*it);
+        }
+        processed.insert(*it);
+        runmore = true;
+      }
+    } catch (std::runtime_error&) {
+      // Уже есть запущенный процесс для обработки задач
+      std::cout << "Tasks are already being processed by another process"
                 << std::endl;
-      Task::DeleteTask(*it);
     }
   }
 }
@@ -69,39 +113,54 @@ void ProcessAllTasks() {
 
 /*! Удалить все завершенные задачи */
 void CommandFlush() {
-  size_t amount = 0;
-  auto tasks = Task::GetTasks();
+  try {
+    exclusive_lock_file fl(g_RunLockPath);
 
-  for (auto it = tasks.begin(); it != tasks.end(); ++it) {
-    Task t;
-    if (t.CreateFromID(*it)) {
-      if (!t.TaskCompleted()) {
-        continue;
+    size_t amount = 0;
+    auto tasks = Task::GetTasks();
+
+    for (auto it = tasks.begin(); it != tasks.end(); ++it) {
+      Task t;
+      if (t.CreateFromID(*it)) {
+        if (!t.TaskCompleted()) {
+          continue;
+        }
       }
+      t.Clear();
+
+      Task::DeleteTask(*it);
+      ++amount;
     }
-    t.Clear();
 
-    Task::DeleteTask(*it);
-    ++amount;
+    std::cout << "Flushed " << amount << " tasks" << std::endl;
+  } catch (std::runtime_error&) {
+    std::cout << "Flush is blocked while processing tasks" << std::endl;
   }
-
-  std::cout << "Flushed " << amount << " tasks" << std::endl;
 }
 
 
 /*! Удалить все задачи */
 void CommandRemoveAll() {
-  auto tasks = Task::GetTasks();
+  try {
+    exclusive_lock_file fl(g_RunLockPath);
+    auto tasks = Task::GetTasks();
 
-  for (auto it = tasks.begin(); it != tasks.end(); ++it) {
-    Task::DeleteTask(*it);
+    for (auto it = tasks.begin(); it != tasks.end(); ++it) {
+      Task::DeleteTask(*it);
+    }
+
+    std::cout << "Removed " << tasks.size() << " tasks" << std::endl;
+  } catch (std::runtime_error&) {
+    std::cout << "RemoveAll is blocked while processing tasks" << std::endl;
   }
-
-  std::cout << "Removed " << tasks.size() << " tasks" << std::endl;
 }
 
 
 int main(int argc, char** argv) {
+  if (!InitLockFilePath()) {
+    return 2;
+  }
+
   if (argc > 1) {
     std::cout << kTitleMessage << std::endl;
     std::string command = argv[1];
