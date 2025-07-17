@@ -113,35 +113,46 @@ void ProcessAllTasks() {
 
 /*! Удалить все завершенные задачи */
 void CommandFlush() {
-  size_t amount = 0;
-  auto tasks = Task::GetTasks();
+  try {
+    exclusive_lock_file fl(g_RunLockPath);
 
-  for (auto it = tasks.begin(); it != tasks.end(); ++it) {
-    Task t;
-    if (t.CreateFromID(*it)) {
-      if (!t.TaskCompleted()) {
-        continue;
+    size_t amount = 0;
+    auto tasks = Task::GetTasks();
+
+    for (auto it = tasks.begin(); it != tasks.end(); ++it) {
+      Task t;
+      if (t.CreateFromID(*it)) {
+        if (!t.TaskCompleted()) {
+          continue;
+        }
       }
+      t.Clear();
+
+      Task::DeleteTask(*it);
+      ++amount;
     }
-    t.Clear();
 
-    Task::DeleteTask(*it);
-    ++amount;
+    std::cout << "Flushed " << amount << " tasks" << std::endl;
+  } catch (std::runtime_error&) {
+    std::cout << "Flush is blocked while processing tasks" << std::endl;
   }
-
-  std::cout << "Flushed " << amount << " tasks" << std::endl;
 }
 
 
 /*! Удалить все задачи */
 void CommandRemoveAll() {
-  auto tasks = Task::GetTasks();
+  try {
+    exclusive_lock_file fl(g_RunLockPath);
+    auto tasks = Task::GetTasks();
 
-  for (auto it = tasks.begin(); it != tasks.end(); ++it) {
-    Task::DeleteTask(*it);
+    for (auto it = tasks.begin(); it != tasks.end(); ++it) {
+      Task::DeleteTask(*it);
+    }
+
+    std::cout << "Removed " << tasks.size() << " tasks" << std::endl;
+  } catch (std::runtime_error&) {
+    std::cout << "RemoveAll is blocked while processing tasks" << std::endl;
   }
-
-  std::cout << "Removed " << tasks.size() << " tasks" << std::endl;
 }
 
 
