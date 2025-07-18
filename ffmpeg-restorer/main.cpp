@@ -166,15 +166,18 @@ int main(int argc, char** argv) {
     std::string command = argv[1];
 
     if (command == kCommandAdd) {
-      {
+      try {
+        exclusive_lock_file fl(g_RunLockPath);
         Task t;
         if (!t.CreateFromArguments(argc - 2, argv + 2)) {
           std::cerr << "Failed to create new task from specified arguments"
                     << std::endl;
           return 1;
         }
+      } catch (std::runtime_error&) {
+        std::cout << "Add is blocked while processing tasks" << std::endl;
+        return 0;
       }
-      std::cout << "Added new task" << std::endl;
       ProcessAllTasks();
     } else if (command == kCommandHelp1 || command == kCommandHelp2) {
       PrintHelp();
