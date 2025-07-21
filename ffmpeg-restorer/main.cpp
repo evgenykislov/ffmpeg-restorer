@@ -51,16 +51,23 @@ std::string g_RunLockPath;
 
 void PrintHelp() { std::cout << kHelpMessage << std::endl; }
 
-bool InitLockFilePath() {
+bool InitFolders() {
   fs::path hd = fs::absolute(HomeDirLibrary::GetHomeDir());
   if (hd.empty()) {
     std::cerr << "ERROR: There isn't home directory with user files"
               << std::endl;
     return false;
   }
+  auto app_dir = hd / kTaskFolder;
+  std::error_code err;
+  fs::create_directories(app_dir, err);
+  if (err) {
+    std::cerr << "ERROR: Can't create application directory" << std::endl;
+    return false;
+  }
 
-  auto lp = hd / kTaskFolder / kRunLockFile;
-  g_RunLockPath = lp;
+  auto lp = app_dir / kRunLockFile;
+  g_RunLockPath = lp.string();
   return true;
 }
 
@@ -157,7 +164,7 @@ void CommandRemoveAll() {
 
 
 int main(int argc, char** argv) {
-  if (!InitLockFilePath()) {
+  if (!InitFolders()) {
     return 2;
   }
 
