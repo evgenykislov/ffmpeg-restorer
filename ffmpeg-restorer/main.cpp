@@ -58,7 +58,7 @@ bool InitFolders() {
               << std::endl;
     return false;
   }
-  auto app_dir = hd / kTaskFolder;
+  auto app_dir = hd / kApplicationFolder;
   std::error_code err;
   fs::create_directories(app_dir, err);
   if (err) {

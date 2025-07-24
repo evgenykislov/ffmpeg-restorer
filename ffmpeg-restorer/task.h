@@ -7,7 +7,7 @@
 #include <vector>
 
 
-const std::string kTaskFolder = ".ffmpegrr";
+const std::string kApplicationFolder = ".ffmpegrr";
 
 
 class Task {
@@ -72,7 +72,7 @@ class Task {
   // Сохраняемая информация по задаче
   std::filesystem::path input_file_;
   std::filesystem::path output_file_;
-  bool output_file_complete_;
+  bool output_file_complete_;  //!< Признак, что выходной файл корректно создан
   std::filesystem::path list_file_;
   std::filesystem::path interim_video_file_;
   bool interim_video_file_complete_;

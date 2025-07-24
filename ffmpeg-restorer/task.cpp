@@ -166,7 +166,8 @@ bool Task::CreateFromID(size_t id) {
       return false;
     }
 
-    task_cfg_path_ = hd / kTaskFolder / std::to_string(id) / kTaskCfgFile;
+    task_cfg_path_ =
+        hd / kApplicationFolder / std::to_string(id) / kTaskCfgFile;
 
     if (!Load(task_cfg_path_)) {
       std::cerr << "Failed to load task " << id << std::endl;
@@ -198,7 +199,7 @@ bool Task::DeleteTask(size_t id) {
       return false;
     }
 
-    auto task_path = hd / kTaskFolder / std::to_string(id);
+    auto task_path = hd / kApplicationFolder / std::to_string(id);
     fs::remove_all(task_path);
     return true;
   } catch (std::exception& err) {
@@ -282,7 +283,7 @@ std::vector<size_t> Task::GetTasks() {
       return result;
     }
 
-    auto task_path = hd / kTaskFolder;
+    auto task_path = hd / kApplicationFolder;
     // переберём все задачи
     for (const auto& item : fs::directory_iterator(task_path)) {
       if (!item.is_directory()) {
@@ -444,7 +445,7 @@ bool Task::CreateNewTaskStorage(size_t& id, std::filesystem::path& task_path) {
       return false;
     }
 
-    task_path = hd / kTaskFolder;
+    task_path = hd / kApplicationFolder;
     fs::create_directory(task_path);
     // Найдём существующий максимальный номер (или ноль)
     id = 0;
