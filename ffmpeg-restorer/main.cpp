@@ -20,6 +20,18 @@ const std::string kCommandList = "list";
 const std::string kCommandAdd = "add";
 const std::string kCommandFlush = "flush";
 const std::string kCommandRemoveAll = "removeall";
+const std::string kCommandVersion = "version";
+
+// Примечание
+// Для задания версии приложения используйте cmake define APPLICATION_VERSION.
+// Например: cmake -DAPPLICATION_VERSION=1.2.3
+#ifdef APPLICATION_VERSION
+#define STRINGIFY_RAW(x) #x
+#define STRINGIFY(x) STRINGIFY_RAW(x)
+const std::string kApplicationVersion = STRINGIFY(APPLICATION_VERSION);
+#else
+const std::string kApplicationVersion = "1.x.x";
+#endif
 
 // clang-format off
 
@@ -162,6 +174,11 @@ void CommandRemoveAll() {
   }
 }
 
+/*! Вывести версию приложения */
+void CommandVersion() {
+  std::cout << "Version: " << kApplicationVersion << std::endl;
+}
+
 
 int main(int argc, char** argv) {
   if (!InitFolders()) {
@@ -194,6 +211,8 @@ int main(int argc, char** argv) {
       CommandFlush();
     } else if (command == kCommandRemoveAll) {
       CommandRemoveAll();
+    } else if (command == kCommandVersion) {
+      CommandVersion();
     } else {
       std::cerr << "Unknown command '" << command << "'" << std::endl;
       return 1;
