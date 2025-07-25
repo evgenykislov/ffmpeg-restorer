@@ -7,6 +7,8 @@
 #include <string>
 #include <vector>
 
+#include <stdio.h>
+
 #include <reproc++/drain.hpp>
 #include <reproc++/reproc.hpp>
 
@@ -26,7 +28,7 @@ bool Str2Duration(const std::string& str, size_t& value) {
     return false;
   }
   unsigned long long hour, minute, second, micro;
-  auto res = std::sscanf(
+  auto res = sscanf_s(
       str.c_str(), "%llu:%llu:%llu.%llu", &hour, &minute, &second, &micro);
   if (res != 4) {
     return false;
