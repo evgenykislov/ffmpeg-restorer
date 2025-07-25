@@ -28,8 +28,13 @@ bool Str2Duration(const std::string& str, size_t& value) {
     return false;
   }
   unsigned long long hour, minute, second, micro;
+#ifdef _WIN32
   auto res = sscanf_s(
       str.c_str(), "%llu:%llu:%llu.%llu", &hour, &minute, &second, &micro);
+#else
+  auto res = sscanf(
+      str.c_str(), "%llu:%llu:%llu.%llu", &hour, &minute, &second, &micro);
+#endif
   if (res != 4) {
     return false;
   }
