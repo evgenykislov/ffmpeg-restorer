@@ -13,7 +13,7 @@ endif()
 
 if(WIN32)
   set(PLATFORM windows)
-  target_compile_definitions(reproc PRIVATE WIN32_LEAN_AND_MEAN)
+  target_compile_definitions(reproc PRIVATE WIN32_LEAN_AND_MEAN _CRT_SECURE_NO_WARNINGS)
   target_link_libraries(reproc PRIVATE ${REPROC_WINSOCK_LIBRARY})
 else()
   set(PLATFORM posix)
