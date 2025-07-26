@@ -259,7 +259,9 @@ bool Task::Run() {
 
   RunConcatenation();  // TODO echo
 
-  RunMerge();  // TODO echo, check returns, etc
+  if (!RunMerge()) {
+    return false;
+  }  // TODO echo, check returns, etc
 
   return true;  // TODO check return value
 }
@@ -709,17 +711,19 @@ bool Task::RunMerge() {
   if (interim_data_file_empty_) {
     // Простое копирование файла с видео
     std::cout << " (copying) ";
-    if (fs::copy_file(interim_video_file_, output_file_,
-            fs::copy_options::overwrite_existing)) {
+    try {
+      fs::copy_file(interim_video_file_, output_file_,
+          fs::copy_options::overwrite_existing);
       output_file_complete_ = true;
       if (Save()) {
         std::cout << " success" << std::endl;
         return true;
       }
       std::cout << " complete, but saving error " << std::endl;
-    } else {
-      std::cout << " failed" << std::endl;
+    } catch (fs::filesystem_error& err) {
+      std::cout << " failed: " << err.what() << std::endl;
     }
+
     return false;
   }
 
