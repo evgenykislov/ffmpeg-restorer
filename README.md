@@ -1,8 +1,7 @@
 # ffmpeg-restorer
-Utility runs conversion via ffmpeg utility set (installed separately) with progress tracking and crash recovery.  
+The ffmpeg-restorer utility allows you to save the progress of media file conversion (transcoding, resolution change, etc.) and continue the process from the last saved point. This eliminates the impact of possible crashes, power outages, and other factors during a long process.
+The ffmpeg-restorer utility uses the popular ffmpeg pack to process media files.  
   
-FFmpegRR allows you to save your progress while converting and continue the process after a stop, crash, etc. from the last saved point. The utility works with conversions as “Tasks”. User adds “tasks”, the utility executes them sequentially. At any moment the work can be interrupted. A subsequent run will continue to execute the tasks from the last saved point.  
-
 Supported OS: Linux, Windows, MacOS.
 
 ## Building:
@@ -14,33 +13,32 @@ Build ffmpegrr:
 **cd ffmpeg-restorer**  
 **cmake -B build**  
 **cmake --build build**  
+**sudo cmake --install build**  
 
-## How to use:
+## Usage example:
 
-FFmpegRR is command line utility and runs like:  
+For example, it needs to reduce the resolution of the input.mp4 video file to half and write the result to the output.mp4 file.  
+Run the command:  
 ```
-ffmpegrr command arguments
-```  
-Running the utility without arguments will continue executing tasks.
-
-Commands:
-
-**add** – adds a new job. The arguments are parameters for the ffmpeg conversion utility.
-
-**flush** – clears intermediate files of completed tasks. The utility does not delete intermediate files automatically, allowing the user to check the result and rerun the conversion
-
-**help** – displays help about the utility
-
-**removeall** – removes all tasks (both completed and incomplete) and their intermediate files. Note: conversion results (output files) are not deleted.
-  
-For example:  
-```  
-ffmpegrr
-```  
-Execute added tasks  
-```  
 ffmpegrr add -i input.mp4 -vf “scale=iw/2:ih/2” output.mp4
 ```  
-Add task to reduces video resolution by half on each side  
-
-More information: https://apoheliy.com/ffmpegrr
+Wait for the message that the task has been created. It takes some time to pre-parse the file and form the task.  
+After that, you can interrupt the conversion process at any time - the intermediate steps will be saved.  
+To resume the conversion from the last saved point, run the utility without parameters:  
+```
+ffmpegrr
+```  
+After the conversion is complete, you can delete all intermediate files by running the command:  
+```
+ffmpegrr flush
+```  
+## Additional information:  
+The following command outputs the internal help:  
+```
+ffmpegrr help
+```  
+For more information, see the website: https://apoheliy.com/ffmpegrr  
+## Authors  
+**Evgeny Kislov** - [evgenykislov.com](https://evgenykislov.com), [github/evgenykislov](https://github.com/evgenykislov)  
+## License  
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details  
