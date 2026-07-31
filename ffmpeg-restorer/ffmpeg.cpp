@@ -91,14 +91,24 @@ bool RunApplication(const std::string& application,
                 << std::endl;
       return false;
     } else if (err) {
-      std::cerr << "Error: " << err.category().name() << ":" << err.value()
+      std::cerr << "Error: after process start: " << err.category().name() << ":" << err.value()
                 << std::endl;
       return false;
     }
 
     err = reproc::drain(proc, sout, serr);
+
+    #if defined(_WIN32)
+    if (err.value() == 10054 && err.category() == std::system_category()) {
+      // Под Windows пайпы при завершении процесса иногда и выдают значение
+      // и возвращают ошибку 10054 (WSAECONNRESET) - пайп разорван
+      // Считаем это штатным поведением
+      err = std::error_code();
+    }
+    #endif
+
     if (err) {
-      std::cerr << "Error: " << err.category().name() << ":" << err.value()
+      std::cerr << "Error: failed catch outputs: " << err.category().name() << ":" << err.value()
                 << std::endl;
       return false;
     }
@@ -118,7 +128,7 @@ bool RunApplication(const std::string& application,
 
     return true;
   } catch (std::exception& err) {
-    std::cerr << "Error: " << err.what() << std::endl;
+    std::cerr << "Error: failed to run application: " << err.what() << std::endl;
   }
   return false;
 }
@@ -187,7 +197,7 @@ bool FFmpeg::RequestDuration(
     }
     return true;
   } catch (std::exception& err) {
-    std::cerr << "Error: " << err.what() << std::endl;
+    std::cerr << "Error: failed to request duration: " << err.what() << std::endl;
   }
   return false;
 }
@@ -246,7 +256,7 @@ bool FFmpeg::RequestFrames(const std::filesystem::path& fname,
     }
     return true;
   } catch (std::exception& err) {
-    std::cerr << "Error: " << err.what() << std::endl;
+    std::cerr << "Error: failed to request key frames: " << err.what() << std::endl;
   }
   return false;
 }
@@ -258,7 +268,11 @@ FFmpeg::ProcessResult FFmpeg::DoConvertation(std::filesystem::path input_file,
     const std::vector<std::string>& input_arguments,
     const std::vector<std::string>& output_arguments) {
   try {
-    std::vector<std::string> raw_args = {"-hide_banner", "-y"};
+    // Зададим общие параметры конвертации:
+    // -hide_banner не выводить информацию о билде и копирайте
+    // -y перезаписывать выходной файл без запроса
+    // -nostats не выводить периодическую статискику/прогресс
+    std::vector<std::string> raw_args = {"-hide_banner", "-y", "-nostats"};
     if (start_time && interval) {
       raw_args.push_back("-ss");
       raw_args.push_back(Duration2Str(start_time.value()));
@@ -290,7 +304,7 @@ FFmpeg::ProcessResult FFmpeg::DoConvertation(std::filesystem::path input_file,
 
     return kProcessSuccess;
   } catch (std::exception& err) {
-    std::cerr << "Error: " << err.what() << std::endl;
+    std::cerr << "Error: failed convertation: " << err.what() << std::endl;
   }
   return kProcessError;
 }
@@ -319,12 +333,12 @@ bool FFmpeg::MergeVideoAndData(std::filesystem::path video_file,
     std::string output;
     std::string errout;
     if (!RunApplication("ffmpeg", raw_args, output, errout)) {
-      std::cout << "ERROR:" << std::endl << errout << std::endl;
+      std::cout << "ERROR: can't merge video and other" << std::endl << errout << std::endl;
       return false;
     }
     return true;
   } catch (std::exception& err) {
-    std::cerr << "Error: " << err.what() << std::endl;
+    std::cerr << "Error: failed to merge video and other" << err.what() << std::endl;
   }
   return false;
 }
@@ -339,14 +353,14 @@ bool FFmpeg::DoConcatenation(
     std::string output;
     std::string errout;
     if (!RunApplication("ffmpeg", raw_args, output, errout)) {
-      std::cout << "ERROR:" << std::endl << errout << std::endl;
+      std::cout << "ERROR: can't concatenate chunks:" << std::endl << errout << std::endl;
 
       return false;
     }
 
     return true;
   } catch (std::exception& err) {
-    std::cerr << "Error: " << err.what() << std::endl;
+    std::cerr << "Error: concatenation failed: " << err.what() << std::endl;
   }
   return false;
 }
@@ -358,13 +372,13 @@ std::string FFmpeg::RequestStreamInfo(const std::filesystem::path& file) {
     std::string output;
     std::string errout;
     if (!RunApplication("ffprobe", raw_args, output, errout)) {
-      std::cout << "ERROR:" << std::endl << errout << std::endl;
+      std::cout << "ERROR: can't gather stream information: " << std::endl << errout << std::endl;
       return {};
     }
 
     return output;
   } catch (std::exception& err) {
-    std::cerr << "Error: " << err.what() << std::endl;
+    std::cerr << "Error: request stream information failed: " << err.what() << std::endl;
   }
   return {};
 }
